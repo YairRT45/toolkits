@@ -1,0 +1,30 @@
+services:
+
+  toolkits:
+    container_name: toolkits-app
+    build: .
+    volumes:
+      - ./src:/app
+    ports:
+      - "8000:80"
+    environment:
+      - DEBUG=1
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_HOST=${DB_HOST}
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: toolkits-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+volumes:
+  postgres_data:
