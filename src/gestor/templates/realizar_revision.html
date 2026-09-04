@@ -39,41 +39,207 @@
         </div>
     </div>
 
-    {% for gop in gops %}
-    <div class="card" style="margin-bottom:16px;" data-gop-id="{{ gop.id }}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h2 style="margin:0;font-size:18px;">GOP {{ gop.numero }} — {{ gop.proceso }}</h2>
-            {% comment %} <label class="form-check">
-                <input type="checkbox" name="completo_{{ gop.id }}" id="completo_{{ gop.id }}">
-                <span>Cumplido</span>
-            </label> {% endcomment %}
-            <div class="checkbox-wrapper">
-                <label class="checkBox">
-                    <input type="checkbox" name="completo_{{ gop.id }}" id="completo_{{ gop.id }}">
-                    <div class="transition"></div>
-                </label>
-                <label for="completo_{{ gop.id }}" class="checkbox-label">
-                    Cumplido
-                </label>
-            </div>
-        </div>
-        <p style="color:#8c8d8f;margin-bottom:16px;">{{ gop.pregunta }}</p>
-        <div class="form-group">
-            <label for="comentario_{{ gop.id }}">Comentario</label>
-            <input type="text" name="comentario_{{ gop.id }}" id="comentario_{{ gop.id }}" class="form-control" placeholder="Comentario sobre este GOP">
-        </div>
-        <div class="form-group">
-            <label for="evidencia_{{ gop.id }}">Evidencia (archivo)</label>
-            <input type="file" name="evidencia_{{ gop.id }}" id="evidencia_{{ gop.id }}" class="form-control">
-        </div>
+    {% if gops %}
+    <div class="table-wrap card" style="padding:0;overflow:hidden;">
+        <table class="gops-table">
+            <thead>
+                <tr>
+                    <th style="width:14%;">Proceso</th>
+                    <th style="width:10%;">Código</th>
+                    <th style="width:24%;">Pregunta</th>
+                    <th style="width:22%;">Comentario</th>
+                    <th style="width:10%;text-align:center;">Progreso</th>
+                    <th style="width:20%;">Entregable / Evidencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gop in gops %}
+                <tr data-gop-id="{{ gop.id }}">
+                    <td>{{ gop.proceso }}</td>
+                    <td>{{ gop.numero }}</td>
+                    <td>{{ gop.pregunta }}</td>
+                    <td>
+                        <input type="text" name="comentario_{{ gop.id }}" class="form-control form-control-sm" placeholder="Comentario">
+                    </td>
+                    <td style="text-align:center;">
+                        <div class="checkbox-wrapper">
+                            <label class="checkBox">
+                                <input type="checkbox" name="completo_{{ gop.id }}" id="completo_{{ gop.id }}">
+                                <div class="transition"></div>
+                            </label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="evidence-cell">
+                            <span class="evidence-filename" id="filename-{{ gop.id }}">Ningún archivo</span>
+                            <label class="btn-evidence" for="evidencia_{{ gop.id }}">
+                                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                            </label>
+                            <input type="file" name="evidencia_{{ gop.id }}" id="evidencia_{{ gop.id }}" class="evidence-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    {% endfor %}
+    {% else %}
+    <div class="empty-state card">
+        <i class="fa-solid fa-clipboard-question"></i>
+        <p>No hay GOPs definidos para este toolkit.</p>
+    </div>
+    {% endif %}
 
     <div class="form-actions">
         <button type="submit" class="btn btn-primary">Guardar revisión</button>
         <button type="submit" name="cancelar" value="1" class="btn btn-secondary">Cancelar</button>
     </div>
 </form>
+{% endblock %}
+
+{% block extra_css %}
+.gops-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.gops-table th {
+    background-color: #222325;
+    color: #8c8d8f;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #2a2b2d;
+}
+
+.gops-table td {
+    padding: 12px 16px;
+    color: #f1f1f1;
+    font-size: 14px;
+    border-bottom: 1px solid #2a2b2d;
+    vertical-align: middle;
+}
+
+.gops-table tbody tr:hover {
+    background-color: #222325;
+}
+
+.gops-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.form-control-sm {
+    padding: 8px 12px;
+    font-size: 13px;
+    background-color: #222325;
+    border: 1px solid #3a3b3d;
+    border-radius: 6px;
+    color: #ffffff;
+    width: 100%;
+}
+
+.form-control-sm:focus {
+    outline: none;
+    border-color: #d4a017;
+}
+
+.evidence-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.evidence-filename {
+    font-size: 13px;
+    color: #8c8d8f;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evidence-input {
+    display: none;
+}
+
+.btn-evidence {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background-color: #222325;
+    border: 1px solid #3a3b3d;
+    color: #8c8d8f;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-evidence:hover {
+    background-color: #3a3b3d;
+    color: #ffffff;
+    border-color: #d4a017;
+}
+
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkBox {
+    display: block;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 0 2px #3a3b3d;
+    flex-shrink: 0;
+    transition: box-shadow 0.2s ease;
+}
+
+.checkBox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    pointer-events: none;
+}
+
+.checkBox div {
+    width: 48px;
+    height: 48px;
+    background-color: #d4a017;
+    top: -42px;
+    left: -42px;
+    position: absolute;
+    transform: rotateZ(45deg);
+    z-index: 2;
+}
+
+.transition {
+    transition: all 250ms ease;
+}
+
+.checkBox input[type="checkbox"]:checked ~ div,
+.checkBox input[type="checkbox"]:checked + div {
+    left: -12px;
+    top: -12px;
+}
+
+.checkBox:has(input[type="checkbox"]:checked) {
+    box-shadow: 0 0 0 2px #d4a017;
+}
 {% endblock %}
 
 {% block extra_js %}
@@ -121,105 +287,20 @@
     });
 
     loadCache();
+
+    document.querySelectorAll('.evidence-input').forEach(function(input) {
+        input.addEventListener('change', function() {
+            const gopId = this.id.replace('evidencia_', '');
+            const label = document.getElementById('filename-' + gopId);
+            if (this.files.length > 0) {
+                label.textContent = this.files[0].name;
+                label.style.color = '#ffffff';
+            } else {
+                label.textContent = 'Ningún archivo';
+                label.style.color = '#8c8d8f';
+            }
+        });
+    });
 })();
 </script>
-{% endblock %}
-
-{% block extra_css %}
-    /* Contenedor para alinear la casilla y el texto */
-    {% comment %} .checkbox-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        user-select: none;
-    } {% endcomment %}
-
-
-    /* Contenedor para alinear la casilla y el texto */
-    .checkbox-wrapper {
-        display: flex !important;
-        flex-direction: row !important; /* Fuerza orden izquierda a derecha */
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-        user-select: none;
-        margin: 0;
-    }
-
-    /* 1. Forzar posición fija a la izquierda */
-    .checkbox-wrapper .checkBox {
-        order: 1 !important;
-    }
-
-    /* 2. Forzar texto a la derecha */
-    .checkbox-wrapper .checkbox-label {
-        order: 2 !important;
-        font-size: 14px;
-        color: #ffffff;
-        cursor: pointer;
-        margin: 0;
-        line-height: 1;
-    }
-    {% comment %} .checkbox-label {
-        font-size: 14px;
-        color: #ffffff;
-        cursor: pointer;
-        margin: 0;
-    }  {% endcomment %}
-
-    /* Casilla personalizada */
-    .checkBox {
-        display: block;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        border: 2px solid transparent;
-        border-radius: 6px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 0 0 2px #3a3b3d; /* Borde sutil inactivo */
-        flex-shrink: 0;
-        transition: box-shadow 0.2s ease;
-    }
-
-    /* Ocultar el input original de Django manteniendo accesibilidad */
-    .checkBox input[type="checkbox"] {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-        margin: 0;
-        pointer-events: none;
-    }
-
-    /* El cuadro deslizante interior */
-    .checkBox div {
-        width: 48px;
-        height: 48px;
-        background-color: #d4a017; /* Color de acento (dorado de tu interfaz) o #ffffff */
-        top: -42px;
-        left: -42px;
-        position: absolute;
-        transform: rotateZ(45deg);
-        z-index: 2;
-    }
-
-    .transition {
-        transition: all 250ms ease;
-    }
-
-    /* Estado activo */
-    /* 1. Mueve ÚNICAMENTE el div interior cuando el checkbox está activo */
-    .checkBox input[type="checkbox"]:checked ~ div,
-    .checkBox input[type="checkbox"]:checked + div {
-        left: -12px;
-        top: -12px;
-    }
-    
-    /* 2. Cambia el borde de la cajita exterior sin mover su posición */
-    .checkBox:has(input[type="checkbox"]:checked) {
-        box-shadow: 0 0 0 2px #d4a017;
-    }
-
 {% endblock %}
