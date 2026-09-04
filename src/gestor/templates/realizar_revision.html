@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}Realizar revisión - {{ toolkit.nombre }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <a href="{% url 'detalle_toolkit' toolkit.pk %}">{{ toolkit.nombre }}</a>
+    <span>/</span>
+    <span>Nueva revisión</span>
+</div>
+
+<div class="section-header">
+    <h1>Realizar revisión</h1>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="revision-form">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:24px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <div class="form-group">
+                <label for="fecha_revision">Fecha de revisión</label>
+                <input type="date" name="fecha_revision" id="fecha_revision" class="form-control" value="{{ fecha_hoy }}" required>
+            </div>
+            {% if toolkit.por_lineas %}
+            <div class="form-group">
+                <label for="linea">Línea</label>
+                <select name="linea" id="linea" class="form-control">
+                    {% for val, label in lineas %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% else %}
+            <input type="hidden" name="linea" value="0">
+            {% endif %}
+        </div>
+    </div>
+
+    {% for gop in gops %}
+    <div class="card" style="margin-bottom:16px;" data-gop-id="{{ gop.id }}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h2 style="margin:0;font-size:18px;">GOP {{ gop.numero }} — {{ gop.proceso }}</h2>
+            {% comment %} <label class="form-check">
+                <input type="checkbox" name="completo_{{ gop.id }}" id="completo_{{ gop.id }}">
+                <span>Cumplido</span>
+            </label> {% endcomment %}
+            <div class="checkbox-wrapper">
+                <label class="checkBox">
+                    <input type="checkbox" name="completo_{{ gop.id }}" id="completo_{{ gop.id }}">
+                    <div class="transition"></div>
+                </label>
+                <label for="completo_{{ gop.id }}" class="checkbox-label">
+                    Cumplido
+                </label>
+            </div>
+        </div>
+        <p style="color:#8c8d8f;margin-bottom:16px;">{{ gop.pregunta }}</p>
+        <div class="form-group">
+            <label for="comentario_{{ gop.id }}">Comentario</label>
+            <input type="text" name="comentario_{{ gop.id }}" id="comentario_{{ gop.id }}" class="form-control" placeholder="Comentario sobre este GOP">
+        </div>
+        <div class="form-group">
+            <label for="evidencia_{{ gop.id }}">Evidencia (archivo)</label>
+            <input type="file" name="evidencia_{{ gop.id }}" id="evidencia_{{ gop.id }}" class="form-control">
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Guardar revisión</button>
+        <button type="submit" name="cancelar" value="1" class="btn btn-secondary">Cancelar</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const STORAGE_KEY = 'revision_cache_{{ toolkit.pk }}';
+    const form = document.getElementById('revision-form');
+
+    function saveCache() {
+        const data = {};
+        form.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (el.name && el.type !== 'file') {
+                if (el.type === 'checkbox') {
+                    data[el.name] = el.checked;
+                } else {
+                    data[el.name] = el.value;
+                }
+            }
+        });
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+    }
+
+    function loadCache() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            Object.keys(data).forEach(function(name) {
+                const el = form.querySelector('[name="' + name + '"]');
+                if (el) {
+                    if (el.type === 'checkbox') {
+                        el.checked = data[name];
+                    } else {
+                        el.value = data[name];
+                    }
+                }
+            });
+        } catch(e) {}
+    }
+
+    form.addEventListener('input', saveCache);
+    form.addEventListener('change', saveCache);
+    form.addEventListener('submit', function() {
+        localStorage.removeItem(STORAGE_KEY);
+    });
+
+    loadCache();
+})();
+</script>
+{% endblock %}
+
+{% block extra_css %}
+    /* Contenedor para alinear la casilla y el texto */
+    {% comment %} .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        user-select: none;
+    } {% endcomment %}
+
+
+    /* Contenedor para alinear la casilla y el texto */
+    .checkbox-wrapper {
+        display: flex !important;
+        flex-direction: row !important; /* Fuerza orden izquierda a derecha */
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        user-select: none;
+        margin: 0;
+    }
+
+    /* 1. Forzar posición fija a la izquierda */
+    .checkbox-wrapper .checkBox {
+        order: 1 !important;
+    }
+
+    /* 2. Forzar texto a la derecha */
+    .checkbox-wrapper .checkbox-label {
+        order: 2 !important;
+        font-size: 14px;
+        color: #ffffff;
+        cursor: pointer;
+        margin: 0;
+        line-height: 1;
+    }
+    {% comment %} .checkbox-label {
+        font-size: 14px;
+        color: #ffffff;
+        cursor: pointer;
+        margin: 0;
+    }  {% endcomment %}
+
+    /* Casilla personalizada */
+    .checkBox {
+        display: block;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 0 2px #3a3b3d; /* Borde sutil inactivo */
+        flex-shrink: 0;
+        transition: box-shadow 0.2s ease;
+    }
+
+    /* Ocultar el input original de Django manteniendo accesibilidad */
+    .checkBox input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        margin: 0;
+        pointer-events: none;
+    }
+
+    /* El cuadro deslizante interior */
+    .checkBox div {
+        width: 48px;
+        height: 48px;
+        background-color: #d4a017; /* Color de acento (dorado de tu interfaz) o #ffffff */
+        top: -42px;
+        left: -42px;
+        position: absolute;
+        transform: rotateZ(45deg);
+        z-index: 2;
+    }
+
+    .transition {
+        transition: all 250ms ease;
+    }
+
+    /* Estado activo */
+    /* 1. Mueve ÚNICAMENTE el div interior cuando el checkbox está activo */
+    .checkBox input[type="checkbox"]:checked ~ div,
+    .checkBox input[type="checkbox"]:checked + div {
+        left: -12px;
+        top: -12px;
+    }
+    
+    /* 2. Cambia el borde de la cajita exterior sin mover su posición */
+    .checkBox:has(input[type="checkbox"]:checked) {
+        box-shadow: 0 0 0 2px #d4a017;
+    }
+
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Revisión {{ revision.fecha_revision|date:"d/m/Y" }} - {{ toolkit.nombre }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <a href="{% url 'detalle_toolkit' toolkit.pk %}">{{ toolkit.nombre }}</a>
+    <span>/</span>
+    <span>Revisión</span>
+</div>
+
+<div class="section-header">
+    <h1>Revisión del {{ revision.fecha_revision|date:"d/m/Y" }}</h1>
+    <div class="toolbar">
+        <select class="form-control" style="width:auto;" onchange="if(this.value) window.location=this.value">
+            <option value="">Fechas</option>
+            {% for id, fecha, linea in fechas %}
+            <option value="{% url 'consultar_revision' toolkit.pk id %}" {% if id == revision.id %}selected{% endif %}>
+                {{ fecha|date:"d/m/Y" }}{% if linea %} — Línea {{ linea }}{% endif %}
+            </option>
+        {% endfor %}
+        </select>
+        <a href="{% url 'desglose_revision_fecha' toolkit.pk revision.id %}" class="btn btn-secondary">Desglose</a>
+        {% if revision.gops_no_cumplidos.count %}
+        <a href="{% url 'crear_plan_accion' toolkit.pk revision.id %}" class="btn btn-primary">Crear plan de acción</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="dashboard-grid" style="margin-bottom:28px;">
+    <div class="widget">
+        <div class="widget-title">Cumplimiento</div>
+        <div class="widget-value {% if revision.porcentaje_cumplimiento >= toolkit.meta %}success{% else %}danger{% endif %}">
+            {{ revision.porcentaje_cumplimiento }}%
+        </div>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" style="width:{{ revision.porcentaje_cumplimiento }}%"></div>
+        </div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">Meta</div>
+        <div class="widget-value warning">{{ toolkit.meta }}%</div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">GOPs no cumplidos</div>
+        <div class="widget-value danger">{{ revision.gops_no_cumplidos.count }}</div>
+    </div>
+    {% if revision.linea %}
+    <div class="widget">
+        <div class="widget-title">Línea</div>
+        <div class="widget-value" style="font-size:24px;">{% if revision.linea == 0 %}General{% else %}Línea {{ revision.linea }}{% endif %}</div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Resultados por GOP</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>Proceso</th>
+                    <th>Pregunta</th>
+                    <th>Estado</th>
+                    <th>Comentario</th>
+                    <th>Evidencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gr in gop_revisiones %}
+                <tr>
+                    <td>{{ gr.gop.numero }}</td>
+                    <td>{{ gr.gop.proceso }}</td>
+                    <td>{{ gr.gop.pregunta }}</td>
+                    <td>
+                        {% if gr.completo %}
+                        <span class="badge badge-success">Completo</span>
+                        {% else %}
+                        <span class="badge badge-danger">Incompleto</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ gr.comentario|default:"—" }}</td>
+                    <td>
+                        {% for ev in gr.evidencias.all %}
+                        <a href="{{ ev.archivo.url }}" target="_blank" style="color:#d4a017;">{{ ev.nombre|truncatechars:20 }}</a>
+                        {% empty %}—{% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

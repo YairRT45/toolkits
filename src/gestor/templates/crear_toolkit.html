@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <span>{{ titulo }}</span>
+</div>
+
+<div class="section-header">
+    <h1>{{ titulo }}</h1>
+</div>
+
+<form method="post" id="toolkit-form">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:24px;">
+        <h2>Información general</h2>
+        {% for field in form %}
+        <div class="form-group">
+            {% if field.field.widget.input_type == 'checkbox' %}
+                <div class="checkbox-wrapper">
+                    <label class="checkBox">
+                        {{ field }}
+                        <div class="transition"></div>
+                    </label>
+                    <label for="{{ field.id_for_label }}" class="checkbox-label">
+                        {{ field.label }}
+                    </label>
+                </div>
+            {% else %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+            {% endif %}
+            {% comment %} {% if field.field.widget.input_type == 'checkbox' %}
+            <label class="form-check">
+                {{ field }}
+                <span>{{ field.label }}</span>
+            </label>
+            {% else %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% endif %} {% endcomment %}
+            {{ field.errors }}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h2 style="margin:0;">GOPs</h2>
+            <button type="button" class="btn btn-secondary btn-sm" id="add-gop">
+                <i class="fa-solid fa-plus"></i> Agregar GOP
+            </button>
+        </div>
+
+        {{ formset.management_form }}
+        <div id="gop-forms">
+            {% for gop_form in formset %}
+            <div class="gop-row gop-form-row">
+                <div>
+                    <label style="font-size:12px;color:#8c8d8f;">No.</label>
+                    {{ gop_form.numero }}
+                </div>
+                <div>
+                    <label style="font-size:12px;color:#8c8d8f;">Proceso</label>
+                    {{ gop_form.proceso }}
+                </div>
+                <div>
+                    <label style="font-size:12px;color:#8c8d8f;">Pregunta</label>
+                    {{ gop_form.pregunta }}
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;padding-top:18px;">
+                    {% if gop_form.instance.pk %}
+                    {{ gop_form.DELETE }}
+                    <label for="{{ gop_form.DELETE.id_for_label }}" class="btn-icon danger" title="Eliminar">
+                        <i class="fa-solid fa-trash"></i>
+                    </label>
+                    {% else %}
+                    <button type="button" class="btn-icon danger remove-gop" title="Eliminar">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+                {% for hidden in gop_form.hidden_fields %}{{ hidden }}{% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if formset.non_form_errors %}
+        <ul class="errorlist">
+            {% for error in formset.non_form_errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="{% if toolkit %}{% url 'detalle_toolkit' toolkit.pk %}{% else %}{% url 'listar_toolkits' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const container = document.getElementById('gop-forms');
+    const addBtn = document.getElementById('add-gop');
+    const totalForms = document.getElementById('id_gop-TOTAL_FORMS');
+
+    addBtn.addEventListener('click', function() {
+        const forms = container.querySelectorAll('.gop-form-row');
+        const newIndex = forms.length;
+        const template = forms[0].cloneNode(true);
+
+        template.querySelectorAll('input, select, textarea').forEach(function(input) {
+            if (input.name) {
+                input.name = input.name.replace(/gop-\d+-/, 'gop-' + newIndex + '-');
+                input.id = input.id.replace(/gop-\d+-/, 'gop-' + newIndex + '-');
+            }
+            if (input.type === 'checkbox') {
+                input.checked = false;
+            } else if (input.type !== 'hidden') {
+                input.value = '';
+            }
+            if (input.name && input.name.includes('-numero')) {
+                input.value = newIndex + 1;
+            }
+        });
+
+        const deleteCheckbox = template.querySelector('input[type=checkbox][name$=-DELETE]');
+        if (deleteCheckbox) {
+            deleteCheckbox.closest('.gop-form-row').querySelector('.btn-icon.danger').outerHTML =
+                '<button type="button" class="btn-icon danger remove-gop" title="Eliminar"><i class="fa-solid fa-trash"></i></button>';
+        }
+
+        container.appendChild(template);
+        totalForms.value = newIndex + 1;
+        bindRemoveButtons();
+    });
+
+    function bindRemoveButtons() {
+        container.querySelectorAll('.remove-gop').forEach(function(btn) {
+            btn.onclick = function() {
+                const row = btn.closest('.gop-form-row');
+                row.remove();
+                reindexForms();
+            };
+        });
+    }
+
+    function reindexForms() {
+        const rows = container.querySelectorAll('.gop-form-row');
+        rows.forEach(function(row, index) {
+            row.querySelectorAll('input, select, textarea').forEach(function(input) {
+                if (input.name) {
+                    input.name = input.name.replace(/gop-\d+-/, 'gop-' + index + '-');
+                    input.id = input.id.replace(/gop-\d+-/, 'gop-' + index + '-');
+                }
+            });
+        });
+        totalForms.value = rows.length;
+    }
+
+    bindRemoveButtons();
+})();
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Contenedor para alinear la casilla y el texto */
+    .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .checkbox-label {
+        font-size: 14px;
+        color: #ffffff;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    /* Casilla personalizada */
+    .checkBox {
+        display: block;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 0 2px #3a3b3d; /* Borde sutil inactivo */
+        flex-shrink: 0;
+        transition: box-shadow 0.2s ease;
+    }
+
+    /* Ocultar el input original de Django manteniendo accesibilidad */
+    .checkBox input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        margin: 0;
+        pointer-events: none;
+    }
+
+    /* El cuadro deslizante interior */
+    .checkBox div {
+        width: 48px;
+        height: 48px;
+        background-color: #d4a017; /* Color de acento (dorado de tu interfaz) o #ffffff */
+        top: -42px;
+        left: -42px;
+        position: absolute;
+        transform: rotateZ(45deg);
+        z-index: 2;
+    }
+
+    .transition {
+        transition: all 250ms ease;
+    }
+
+    /* Estado activo */
+    /* 1. Mueve ÚNICAMENTE el div interior cuando el checkbox está activo */
+    .checkBox input[type="checkbox"]:checked ~ div,
+    .checkBox input[type="checkbox"]:checked + div {
+        left: -12px;
+        top: -12px;
+    }
+    
+    /* 2. Cambia el borde de la cajita exterior sin mover su posición */
+    .checkBox:has(input[type="checkbox"]:checked) {
+        box-shadow: 0 0 0 2px #d4a017;
+    }
+
+</style>
+{% endblock %}

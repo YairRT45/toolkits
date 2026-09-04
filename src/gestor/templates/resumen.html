@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block title %}Resumen{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom:28px;">Toolkits</h1>
+
+{% if resumenes %}
+<div class="toolkits-grid">
+    {% for item in resumenes %}
+    <a href="{% url 'detalle_toolkit' item.toolkit.pk %}" class="toolkit-card">
+        <div class="toolkit-card-header">
+            <span class="toolkit-card-name">{{ item.toolkit.nombre }}</span>
+            <span class="toolkit-card-pct {% if item.porcentaje >= item.meta %}pct-success{% elif item.porcentaje < 80 %}pct-danger{% else %}pct-warning{% endif %}">
+                {% if item.porcentaje is not None %}{{ item.porcentaje }}%{% else %}—{% endif %}
+            </span>
+        </div>
+        <div class="toolkit-card-body">
+            <div class="toolkit-card-chart"> {% comment %} TODO: Revisar este canvas, el de la vista no esta funcionando {% endcomment %}
+                <canvas id="chart-{{ item.toolkit.pk }}"></canvas>
+            </div>
+            <div class="toolkit-card-info">
+                <div class="toolkit-card-label">Puntos de atención</div>
+                <div class="toolkit-card-detail">GOPs pendientes: {{ item.gops_no_cumplidos }}</div>
+                <div class="toolkit-card-detail">Proceso con menor cumplimiento: {{ item.gop_menor.numero|default:"—" }}</div>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card">
+    <i class="fa-solid fa-chart-pie"></i>
+    <p>No hay Toolkits registrados para mostrar resumen.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+.toolkits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.toolkit-card {
+    display: block;
+    background-color: #1a1b1d;
+    border: 1px solid #2a2b2d;
+    border-radius: 12px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.toolkit-card:hover {
+    border-color: #d4a017;
+    transform: translateY(-2px);
+}
+
+.toolkit-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.toolkit-card-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.toolkit-card-pct {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.pct-success { color: #00b050; }
+.pct-warning { color: #d4a017; }
+.pct-danger { color: #e74c3c; }
+
+.toolkit-card-body {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.toolkit-card-chart {
+    width: 100px;
+    height: 64px;
+    flex-shrink: 0;
+    background: #transparent;
+    {% comment %} border-radius: 6px;
+    overflow: hidden; {% endcomment %}
+}
+
+{% comment %} .toolkit-card-chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+} {% endcomment %}
+
+.toolkit-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.toolkit-card-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.toolkit-card-detail {
+    font-size: 12px;
+    color: #8c8d8f;
+    line-height: 1.4;
+}
+
+@media (max-width: 1100px) {
+    .toolkits-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 700px) {
+    .toolkits-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% comment %} {% block extra_js %}
+<script>
+const chartsData = {{ charts_json|safe }};
+chartsData.forEach(function(item) {
+    const canvas = document.getElementById('chart-' + item.id);
+    if (!canvas) return;
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: item.data.map(d => d.label),
+            datasets: [{
+                data: item.data.map(d => d.porcentaje),
+                borderColor: '#e74c3c',
+                backgroundColor: 'transparent',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.3,
+                spanGaps: true,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: {
+                y: { display: false, min: 0, max: 100 },
+                x: { display: false }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} {% endcomment %}
+
+{% block extra_js %}
+<script>
+const chartsData = {{ charts_json|safe }};
+
+chartsData.forEach(function(item) {
+    const canvas = document.getElementById('chart-' + item.id);
+    if (!canvas) return;
+
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: item.data.map(d => d.label),
+            datasets: [{
+                data: item.data.map(d => d.porcentaje),
+                borderColor: '#e74c3c',
+                backgroundColor: 'rgba(231, 76, 60, 0.12)', /* Sutil sombreado bajo la línea */
+                fill: true,
+                borderWidth: 2,
+                /* Configuración de los puntos */
+                pointRadius: 3,
+                pointHoverRadius: 4,
+                pointBackgroundColor: '#e74c3c',
+                pointBorderColor: '#1a1b1d', /* Borde con el mismo color de la tarjeta */
+                pointBorderWidth: 1,
+                tension: 0.3,
+                spanGaps: true,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'nearest',
+                intersect: true
+            },
+            layout: {
+                padding: { top: 6, bottom: 6, left: 6, right: 6 }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    backgroundColor: '#111214',
+                    titleColor: '#8c8d8f',
+                    bodyColor: '#ffffff',
+                    borderColor: '#2a2b2d',
+                    borderWidth: 1,
+                    padding: 8,
+                    displayColors: false, // Oculta el cuadrito de color del dataset
+                    titleFont: { size: 11, weight: 'normal' },
+                    bodyFont: { size: 13, weight: 'bold' },
+                    callbacks: {
+                        // Título: muestra la fecha de la revisión (el label)
+                        title: function(context) {
+                            return context[0].label;
+                        },
+                        // Contenido: muestra el porcentaje formateado
+                        label: function(context) {
+                            const valor = context.parsed.y;
+                            return valor !== null ? `${valor}%` : 'Sin datos';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { display: false, min: 0, max: 100 },
+                x: { display: false }
+            }
+        }
+        {% comment %} options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 6,
+                    bottom: 6,
+                    left: 6,
+                    right: 6
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                y: { display: false, min: 0, max: 100 },
+                x: { display: false }
+            }
+        } {% endcomment %}
+    });
+});
+</script>
+{% endblock %}

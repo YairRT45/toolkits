@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Revisiones - {{ toolkit.nombre }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <a href="{% url 'detalle_toolkit' toolkit.pk %}">{{ toolkit.nombre }}</a>
+    <span>/</span>
+    <span>Revisiones</span>
+</div>
+
+<div class="section-header">
+    <h1>Revisiones</h1>
+    <div class="toolbar">
+        {% if toolkit.por_lineas %}
+        <select class="form-control" style="width:auto;" onchange="window.location='?linea='+this.value">
+            <option value="">Todas las líneas</option>
+            <option value="0" {% if request.GET.linea == '0' %}selected{% endif %}>General</option>
+            {% for i in lineas_filtro %}
+            <option value="{{ i }}" {% if request.GET.linea == i|stringformat:"s" %}selected{% endif %}>Línea {{ i }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <a href="{% url 'realizar_revision' toolkit.pk %}" class="btn btn-primary">Nueva revisión</a>
+    </div>
+</div>
+
+{% if revisiones %}
+<ul class="card-list">
+    {% for rev in revisiones %}
+    <li class="card card-row">
+        <span class="card-name">{{ rev.fecha_revision|date:"d/m/Y" }}</span>
+        <div class="card-meta">
+            <span>{% if rev.linea == 0 %}General{% else %}Línea {{ rev.linea }}{% endif %}</span>
+            <span>Cumplimiento: {{ rev.porcentaje_cumplimiento }}%</span>
+            <span>GOPs incompletos: {{ rev.gops_no_cumplidos.count }}</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <a href="{% url 'consultar_revision' toolkit.pk rev.id %}" class="btn btn-secondary btn-sm">Ver</a>
+            <a href="{% url 'desglose_revision_fecha' toolkit.pk rev.id %}" class="btn btn-secondary btn-sm">Desglose</a>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="empty-state card">
+    <i class="fa-solid fa-calendar-xmark"></i>
+    <p>No hay revisiones registradas.</p>
+    <a href="{% url 'realizar_revision' toolkit.pk %}" class="btn btn-primary" style="margin-top:16px;">Realizar primera revisión</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Planes de acción{% if toolkit %} - {{ toolkit.nombre }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    {% if toolkit %}
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <a href="{% url 'detalle_toolkit' toolkit.pk %}">{{ toolkit.nombre }}</a>
+    <span>/</span>
+    {% else %}
+    <a href="{% url 'resumen' %}">Resumen</a>
+    <span>/</span>
+    {% endif %}
+    <span>Planes de acción</span>
+</div>
+
+<div class="section-header">
+    <h1>Planes de acción{% if toolkit %} — {{ toolkit.nombre }}{% endif %}</h1>
+</div>
+
+{% if planes %}
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Toolkit</th>
+                    <th>GOP</th>
+                    <th>Descripción</th>
+                    <th>Responsable</th>
+                    <th>Fecha límite</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in planes %}
+                <tr>
+                    <td>{{ plan.gop_revision.revision.toolkit.nombre }}</td>
+                    <td>GOP {{ plan.gop_revision.gop.numero }}</td>
+                    <td>{{ plan.descripcion|truncatechars:60 }}</td>
+                    <td>{{ plan.responsable }}</td>
+                    <td>{{ plan.fecha_limite|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if plan.completado %}
+                        <span class="badge badge-success">Completado</span>
+                        {% else %}
+                        <span class="badge badge-danger">Abierto</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="empty-state card">
+    <i class="fa-solid fa-clipboard-list"></i>
+    <p>No hay planes de acción registrados.</p>
+</div>
+{% endif %}
+{% endblock %}

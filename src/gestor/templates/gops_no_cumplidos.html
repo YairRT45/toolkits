@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}GOPs no cumplidos{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <h1>GOPs no cumplidos</h1>
+    <a href="{% url 'resumen' %}" class="btn btn-secondary">Volver al resumen</a>
+</div>
+
+{% if resultados %}
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Toolkit</th>
+                    <th>GOP</th>
+                    <th>Proceso</th>
+                    <th>Pregunta</th>
+                    <th>Revisión</th>
+                    <th>Comentario</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in resultados %}
+                <tr>
+                    <td><a href="{% url 'detalle_toolkit' item.toolkit.pk %}" style="color:#d4a017;">{{ item.toolkit.nombre }}</a></td>
+                    <td>{{ item.gop.numero }}</td>
+                    <td>{{ item.gop.proceso }}</td>
+                    <td>{{ item.gop.pregunta }}</td>
+                    <td>{{ item.revision.fecha_revision|date:"d/m/Y" }}</td>
+                    <td>{{ item.comentario|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="empty-state card">
+    <i class="fa-solid fa-circle-check"></i>
+    <p>No hay GOPs incumplidos en las revisiones más recientes.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ toolkit.nombre }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <span>{{ toolkit.nombre }}</span>
+</div>
+
+<div class="section-header">
+    <h1>{{ toolkit.nombre }}</h1>
+    <div class="toolbar">
+        <a href="{% url 'realizar_revision' toolkit.pk %}" class="btn btn-primary">Realizar revisión</a>
+        <a href="{% url 'listar_revisiones' toolkit.pk %}" class="btn btn-secondary">Revisiones</a>
+        <a href="{% url 'desglose_revision' toolkit.pk %}" class="btn btn-secondary">Desglose</a>
+        <a href="{% url 'editar_toolkit' toolkit.pk %}" class="btn btn-secondary">Editar</a>
+    </div>
+</div>
+
+<div class="dashboard-grid" style="margin-bottom:28px;">
+    <div class="widget">
+        <div class="widget-title">Meta de cumplimiento</div>
+        <div class="widget-value warning">{{ toolkit.meta }}%</div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">Cumplimiento actual</div>
+        <div class="widget-value {% if toolkit.porcentaje_actual >= toolkit.meta %}success{% else %}danger{% endif %}">
+            {% if toolkit.porcentaje_actual is not None %}
+                {{ toolkit.porcentaje_actual }}%
+            {% else %}
+                —
+            {% endif %}
+        </div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">GOPs registrados</div>
+        <div class="widget-value">{{ gops.count }}</div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">Revisión por líneas</div>
+        <div class="widget-value" style="font-size:24px;">{% if toolkit.por_lineas %}Sí (14 líneas){% else %}No{% endif %}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>GOPs del Toolkit</h2>
+    {% if gops %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>Proceso</th>
+                    <th>Pregunta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gop in gops %}
+                <tr>
+                    <td>{{ gop.numero }}</td>
+                    <td>{{ gop.proceso }}</td>
+                    <td>{{ gop.pregunta }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>Este Toolkit no tiene GOPs. <a href="{% url 'editar_toolkit' toolkit.pk %}" style="color:#d4a017;">Agregar GOPs</a></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

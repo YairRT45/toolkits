@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Desglose - {{ toolkit.nombre }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <a href="{% url 'detalle_toolkit' toolkit.pk %}">{{ toolkit.nombre }}</a>
+    <span>/</span>
+    <span>Desglose</span>
+</div>
+
+<div class="section-header">
+    <h1>Desglose — {{ revision.fecha_revision|date:"d/m/Y" }}</h1>
+    <div class="toolbar">
+        <select class="form-control" style="width:auto;" onchange="if(this.value) window.location=this.value">
+            <option value="">Seleccionar fecha</option>
+            {% for id, fecha, linea in fechas %}
+            <option value="{% url 'desglose_revision_fecha' toolkit.pk id %}" {% if id == revision.id %}selected{% endif %}>
+                {{ fecha|date:"d/m/Y" }}{% if linea %} — Línea {{ linea }}{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="widget">
+        <div class="widget-title">Cumplimiento actual</div>
+        <div class="widget-value {% if porcentaje >= meta %}success{% else %}danger{% endif %}">{{ porcentaje }}%</div>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" style="width:{{ porcentaje }}%"></div>
+        </div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">Meta del Toolkit</div>
+        <div class="widget-value warning">{{ meta }}%</div>
+    </div>
+    <a href="{% url 'gops_no_cumplidos' %}" class="widget widget-link">
+        <div class="widget-title">GOPs no cumplidos</div>
+        <div class="widget-value danger">{{ gops_no_cumplidos }}</div>
+    </a>
+    <div class="widget">
+        <div class="widget-title">GOP con menor cumplimiento</div>
+        {% if gop_menor %}
+        <div class="widget-value" style="font-size:20px;">GOP {{ gop_menor.numero }}</div>
+        <p style="color:#8c8d8f;font-size:13px;margin-top:8px;">{{ gop_menor_pct }}% histórico</p>
+        {% else %}
+        <div class="widget-value" style="font-size:20px;">—</div>
+        {% endif %}
+    </div>
+    <a href="{% url 'listar_planes_accion' toolkit.pk %}" class="widget widget-link">
+        <div class="widget-title">Planes de acción abiertos</div>
+        <div class="widget-value">{{ planes_abiertos }}</div>
+    </a>
+</div>
+
+<a href="{% url 'ampliar_grafica' toolkit.pk %}" class="chart-container widget-link" style="display:block;margin-top:20px;">
+    <h2 style="margin-bottom:16px;">Cumplimiento — últimos 6 meses <i class="fa-solid fa-expand" style="font-size:14px;color:#8c8d8f;"></i></h2>
+    <canvas id="chartCumplimiento"></canvas>
+</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const chartData = {{ chart_data|safe }};
+new Chart(document.getElementById('chartCumplimiento'), {
+    type: 'line',
+    data: {
+        labels: chartData.map(d => d.label),
+        datasets: [{
+            label: 'Cumplimiento (%)',
+            data: chartData.map(d => d.porcentaje),
+            borderColor: '#00b050',
+            backgroundColor: 'rgba(0, 176, 80, 0.1)',
+            fill: true,
+            tension: 0.3,
+            spanGaps: true,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#ffffff' } } },
+        scales: {
+            y: { min: 0, max: 100, ticks: { color: '#8c8d8f' }, grid: { color: '#2a2b2d' } },
+            x: { ticks: { color: '#8c8d8f' }, grid: { color: '#2a2b2d' } }
+        }
+    }
+});
+</script>
+{% endblock %}

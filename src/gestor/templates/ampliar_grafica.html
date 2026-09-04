@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Gráfica ampliada - {{ toolkit.nombre }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <a href="{% url 'detalle_toolkit' toolkit.pk %}">{{ toolkit.nombre }}</a>
+    <span>/</span>
+    <a href="{% url 'desglose_revision' toolkit.pk %}">Desglose</a>
+    <span>/</span>
+    <span>Gráfica ampliada</span>
+</div>
+
+<div class="section-header">
+    <h1>Cumplimiento histórico — {{ toolkit.nombre }}</h1>
+    <a href="{% url 'desglose_revision' toolkit.pk %}" class="btn btn-secondary">Volver al desglose</a>
+</div>
+
+<div class="chart-container">
+    <canvas id="chartAmpliada" style="max-height:500px;"></canvas>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const chartData = {{ chart_data|safe }};
+new Chart(document.getElementById('chartAmpliada'), {
+    type: 'bar',
+    data: {
+        labels: chartData.map(d => d.label),
+        datasets: [{
+            label: 'Cumplimiento (%)',
+            data: chartData.map(d => d.porcentaje),
+            backgroundColor: 'rgba(0, 176, 80, 0.6)',
+            borderColor: '#00b050',
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#ffffff' } } },
+        scales: {
+            y: { min: 0, max: 100, ticks: { color: '#8c8d8f' }, grid: { color: '#2a2b2d' } },
+            x: { ticks: { color: '#8c8d8f' }, grid: { color: '#2a2b2d' } }
+        }
+    }
+});
+</script>
+{% endblock %}

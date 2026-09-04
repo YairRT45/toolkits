@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Toolkits{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <h1>Toolkits</h1>
+    <a href="{% url 'crear_toolkit' %}" class="btn btn-nuevo">Nuevo</a>
+</div>
+
+{% if toolkits %}
+<ul class="card-list">
+    {% for item in toolkits %}
+    <li class="card card-row">
+        <a href="{% url 'detalle_toolkit' item.toolkit.pk %}" class="card-name" style="text-decoration:none;color:inherit;">
+            {{ item.toolkit.nombre }}
+        </a>
+
+        <div class="card-meta">
+            <span>
+                Última revisión:
+                {% if item.ultima %}
+                    {{ item.ultima.fecha_revision|date:"d/m/Y" }}
+                {% else %}
+                    Sin revisiones
+                {% endif %}
+            </span>
+            <span>
+                Porcentaje actual:
+                {% if item.porcentaje is not None %}
+                    {{ item.porcentaje }}%
+                {% else %}
+                    —
+                {% endif %}
+            </span>
+        </div>
+
+        <div class="card-actions">
+            <button class="dots-btn" onclick="toggleMenu(this)" title="Opciones">
+                <i class="fa-solid fa-ellipsis"></i>
+            </button>
+            <div class="context-menu">
+                <a href="{% url 'editar_toolkit' item.toolkit.pk %}" class="menu-item">Editar</a>
+                <a href="{% url 'eliminar_toolkit' item.toolkit.pk %}" class="menu-item">Eliminar</a>
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="empty-state card">
+    <i class="fa-solid fa-box-open"></i>
+    <p>No hay Toolkits registrados</p>
+    <a href="{% url 'crear_toolkit' %}" class="btn btn-nuevo" style="margin-top:16px;">Crear primer Toolkit</a>
+</div>
+{% endif %}
+{% endblock %}

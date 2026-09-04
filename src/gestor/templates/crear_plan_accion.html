@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear plan de acción{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <a href="{% url 'detalle_toolkit' toolkit.pk %}">{{ toolkit.nombre }}</a>
+    <span>/</span>
+    <span>Plan de acción</span>
+</div>
+
+<div class="section-header">
+    <h1>Crear plan de acción</h1>
+</div>
+
+<div class="card" style="max-width:700px;">
+    <p style="color:#8c8d8f;margin-bottom:24px;">
+        Revisión del {{ revision.fecha_revision|date:"d/m/Y" }} —
+        {{ revision.gops_no_cumplidos.count }} GOP(s) incumplido(s)
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+        </div>
+        {% endfor %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'consultar_revision' toolkit.pk revision.id %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
