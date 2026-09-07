@@ -1,10 +1,13 @@
 import json
+import os
+import tempfile
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
+from django.urls import reverse
 
 from .models import Toolkit, Gop, Revision, Gop_revision, Evidencia, PlanAccion
 from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm
@@ -141,63 +144,188 @@ def realizar_revision(request, pk):
         messages.error(request, 'Este Toolkit no tiene GOPs registrados.')
         return redirect('detalle_toolkit', pk=pk)
 
+    session_key = f'revision_lines_{pk}'
+
     if request.method == 'POST':
         if request.POST.get('cancelar'):
+            request.session.pop(session_key, None)
             return redirect('detalle_toolkit', pk=pk)
 
         fecha = request.POST.get('fecha_revision', timezone.now().date().isoformat())
-        linea = int(request.POST.get('linea', Revision.LINEA_GENERAL))
+        linea_actual = int(request.POST.get('linea_actual', 1))
+        es_ultima_linea = request.POST.get('guardar') == '1'
 
-        revision = Revision.objects.create(
-            toolkit=toolkit,
-            fecha_revision=fecha,
-            linea=linea,
-        )
+        if toolkit.por_lineas:
+            if session_key not in request.session:
+                request.session[session_key] = {
+                    'fecha': fecha,
+                    'lineas_data': {},
+                }
 
-        incompletos = []
-        for gop in gops:
-            completo = request.POST.get(f'completo_{gop.id}') == 'on'
-            comentario = request.POST.get(f'comentario_{gop.id}', '')
-            gr = Gop_revision.objects.create(
-                gop=gop,
-                revision=revision,
-                comentario=comentario,
-                completo=completo,
-            )
-            if not completo:
-                incompletos.append(gop.numero)
+            session_data = request.session[session_key]
+            lineas_data = session_data.get('lineas_data', {})
 
-            archivo = request.FILES.get(f'evidencia_{gop.id}')
-            if archivo:
-                Evidencia.objects.create(
-                    gop_revision=gr,
-                    archivo=archivo,
-                    nombre=archivo.name,
-                )
+            gops_data = {}
+            for gop in gops:
+                completo = request.POST.get(f'completo_{gop.id}') == 'on'
+                comentario = request.POST.get(f'comentario_{gop.id}', '')
 
-        if incompletos:
-            messages.warning(
-                request,
-                f'Revisión guardada. GOPs incompletos: {", ".join(map(str, incompletos))}. '
-                'Considere crear planes de acción.',
-            )
+                gop_data = {
+                    'completo': completo,
+                    'comentario': comentario,
+                }
+
+                archivo = request.FILES.get(f'evidencia_{gop.id}')
+                if archivo:
+                    temp_dir = tempfile.gettempdir()
+                    temp_path = os.path.join(temp_dir, f'rev_{pk}_gop_{gop.id}_linea_{linea_actual}_{archivo.name}')
+                    with open(temp_path, 'wb') as f:
+                        for chunk in archivo.chunks():
+                            f.write(chunk)
+                    gop_data['archivo_temp'] = temp_path
+                    gop_data['archivo_nombre'] = archivo.name
+
+                gops_data[str(gop.id)] = gop_data
+
+            lineas_data[str(linea_actual)] = {'gops': gops_data}
+
+            session_data['lineas_data'] = lineas_data
+            session_data['fecha'] = fecha
+            request.session[session_key] = session_data
+            request.session.modified = True
+            request.session.save()
+
+            if es_ultima_linea:
+                incompletos = []
+                ultima_revision = None
+
+                for linea_num in range(1, 15):
+                    ld = lineas_data.get(str(linea_num))
+                    if not ld:
+                        incompletos.extend([g.numero for g in gops])
+                        continue
+
+                    revision = Revision.objects.create(
+                        toolkit=toolkit,
+                        fecha_revision=fecha,
+                        linea=linea_num,
+                    )
+                    ultima_revision = revision
+
+                    for gop in gops:
+                        gop_id_str = str(gop.id)
+                        gop_data = ld.get('gops', {}).get(gop_id_str, {})
+                        completo = gop_data.get('completo', False)
+                        comentario = gop_data.get('comentario', '')
+
+                        gr = Gop_revision.objects.create(
+                            gop=gop,
+                            revision=revision,
+                            comentario=comentario,
+                            completo=completo,
+                        )
+
+                        if not completo:
+                            incompletos.append(gop.numero)
+
+                        temp_path = gop_data.get('archivo_temp')
+                        if temp_path and os.path.exists(temp_path):
+                            with open(temp_path, 'rb') as f:
+                                Evidencia.objects.create(
+                                    gop_revision=gr,
+                                    archivo=f,
+                                    nombre=gop_data.get('archivo_nombre', ''),
+                                )
+                            os.remove(temp_path)
+
+                incompletos = list(dict.fromkeys(incompletos))
+
+                request.session.pop(session_key, None)
+                request.session.modified = True
+                request.session.save()
+
+                if incompletos:
+                    messages.warning(
+                        request,
+                        f'Revisión guardada. GOPs incompletos: {", ".join(map(str, incompletos))}. '
+                        'Considere crear planes de acción.',
+                    )
+                else:
+                    messages.success(request, 'Revisión completada. Todos los GOPs cumplidos.')
+
+                toolkit.fecha_ultima_modificacion = timezone.now().date()
+                toolkit.save()
+                return redirect('consultar_revision', pk=pk, revision_id=ultima_revision.id)
+            else:
+                return redirect(reverse('realizar_revision', kwargs={'pk': pk}) + f'?linea={linea_actual + 1}')
+
         else:
-            messages.success(request, 'Revisión completada. Todos los GOPs cumplidos.')
+            linea = int(request.POST.get('linea', Revision.LINEA_GENERAL))
 
-        toolkit.fecha_ultima_modificacion = timezone.now().date()
-        toolkit.save()
-        return redirect('consultar_revision', pk=pk, revision_id=revision.id)
+            revision = Revision.objects.create(
+                toolkit=toolkit,
+                fecha_revision=fecha,
+                linea=linea,
+            )
 
-    lineas = [(Revision.LINEA_GENERAL, 'General')]
+            incompletos = []
+            for gop in gops:
+                completo = request.POST.get(f'completo_{gop.id}') == 'on'
+                comentario = request.POST.get(f'comentario_{gop.id}', '')
+                gr = Gop_revision.objects.create(
+                    gop=gop,
+                    revision=revision,
+                    comentario=comentario,
+                    completo=completo,
+                )
+                if not completo:
+                    incompletos.append(gop.numero)
+
+                archivo = request.FILES.get(f'evidencia_{gop.id}')
+                if archivo:
+                    Evidencia.objects.create(
+                        gop_revision=gr,
+                        archivo=archivo,
+                        nombre=archivo.name,
+                    )
+
+            if incompletos:
+                messages.warning(
+                    request,
+                    f'Revisión guardada. GOPs incompletos: {", ".join(map(str, incompletos))}. '
+                    'Considere crear planes de acción.',
+                )
+            else:
+                messages.success(request, 'Revisión completada. Todos los GOPs cumplidos.')
+
+            toolkit.fecha_ultima_modificacion = timezone.now().date()
+            toolkit.save()
+            return redirect('consultar_revision', pk=pk, revision_id=revision.id)
+
+    linea_actual = 1
+    lineas_data = {}
+    fecha_hoy = timezone.now().date().isoformat()
+
     if toolkit.por_lineas:
-        lineas += [(i, f'Línea {i}') for i in range(1, 15)]
+        linea_actual = int(request.GET.get('linea', 1))
+        if session_key in request.session:
+            session_data = request.session[session_key]
+            lineas_data = session_data.get('lineas_data', {})
+            fecha_hoy = session_data.get('fecha', fecha_hoy)
+
+    current_line_data = lineas_data.get(str(linea_actual), {})
+    lineas_data_json = json.dumps(current_line_data, cls=DjangoJSONEncoder)
 
     return render(request, 'realizar_revision.html', {
         'toolkit': toolkit,
         'gops': gops,
-        'lineas': lineas,
-        'fecha_hoy': timezone.now().date().isoformat(),
+        'lineas': [(i, f'Línea {i}') for i in range(1, 15)],
+        'fecha_hoy': fecha_hoy,
         'nav_active': 'toolkits',
+        'linea_actual': linea_actual,
+        'lineas_data': lineas_data,
+        'lineas_data_json': lineas_data_json,
+        'total_lineas': 14 if toolkit.por_lineas else 1,
     })
 
 
