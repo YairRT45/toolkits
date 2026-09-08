@@ -42,8 +42,15 @@ def crear_toolkit(request):
             toolkit = form.save(commit=False)
             toolkit.fecha_ultima_modificacion = timezone.now().date()
             toolkit.save()
-            formset.instance = toolkit
-            formset.save()
+            num = 0
+            for f in formset:
+                if f.cleaned_data and not f.cleaned_data.get('DELETE', False):
+                    num += 1
+                    gop = f.save(commit=False)
+                    gop.toolkit = toolkit
+                    gop.numero = num
+                    print(num)
+                    gop.save()
             messages.success(request, 'Toolkit creado correctamente.')
             return redirect('listar_toolkits')
         if not form.is_valid():
@@ -86,7 +93,16 @@ def editar_toolkit(request, pk):
             toolkit = form.save(commit=False)
             toolkit.fecha_ultima_modificacion = timezone.now().date()
             toolkit.save()
-            formset.save()
+            num = 0
+            for f in formset:
+                if f.cleaned_data and not f.cleaned_data.get('DELETE', False):
+                    num += 1
+                    gop = f.save(commit=False)
+                    gop.toolkit = toolkit
+                    gop.numero = num
+                    gop.save()
+                elif f.cleaned_data and f.cleaned_data.get('DELETE', False) and f.instance.pk:
+                    f.instance.delete()
             messages.success(request, 'Toolkit actualizado correctamente.')
             return redirect('detalle_toolkit', pk=pk)
         if not formset.is_valid():

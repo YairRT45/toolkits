@@ -22,9 +22,8 @@ class ToolkitForm(forms.ModelForm):
 class GopForm(forms.ModelForm):
     class Meta:
         model = Gop
-        fields = ['numero', 'proceso', 'pregunta']
+        fields = ['proceso', 'pregunta']
         widgets = {
-            'numero': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
             'proceso': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Proceso'}),
             'pregunta': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Pregunta del GOP'}),
         }

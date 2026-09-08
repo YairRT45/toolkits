@@ -22,13 +22,14 @@
         <div class="form-group">
             {% if field.field.widget.input_type == 'checkbox' %}
                 <div class="checkbox-wrapper">
+                    <label for="{{ field.id_for_label }}" class="checkbox-label">
+                        {{ field.label }}
+                    </label>
                     <label class="checkBox">
                         {{ field }}
                         <div class="transition"></div>
                     </label>
-                    <label for="{{ field.id_for_label }}" class="checkbox-label">
-                        {{ field.label }}
-                    </label>
+                    
                 </div>
             {% else %}
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -60,10 +61,6 @@
         <div id="gop-forms">
             {% for gop_form in formset %}
             <div class="gop-row gop-form-row">
-                <div>
-                    <label style="font-size:12px;color:#8c8d8f;">No.</label>
-                    {{ gop_form.numero }}
-                </div>
                 <div>
                     <label style="font-size:12px;color:#8c8d8f;">Proceso</label>
                     {{ gop_form.proceso }}
@@ -109,62 +106,100 @@
 (function() {
     const container = document.getElementById('gop-forms');
     const addBtn = document.getElementById('add-gop');
-    const totalForms = document.getElementById('id_gop-TOTAL_FORMS');
-
+    
+    // Busca el input de TOTAL_FORMS sin importar el prefijo ('gop', 'gop_set', etc.)
+    const totalForms = document.querySelector('input[name$="-TOTAL_FORMS"]');
+    
     addBtn.addEventListener('click', function() {
         const forms = container.querySelectorAll('.gop-form-row');
-        const newIndex = forms.length;
+        if (forms.length === 0) return;
+    
+        // Detecta el prefijo dinámicamente desde el nombre del management_form (ej: 'gop' o 'gop_set')
+        const prefix = totalForms ? totalForms.name.replace('-TOTAL_FORMS', '') : 'gop';
+        const newIndex = totalForms ? parseInt(totalForms.value, 10) : forms.length;
+        
+        // Clonamos la primera fila
         const template = forms[0].cloneNode(true);
-
-        template.querySelectorAll('input, select, textarea').forEach(function(input) {
-            if (input.name) {
-                input.name = input.name.replace(/gop-\d+-/, 'gop-' + newIndex + '-');
-                input.id = input.id.replace(/gop-\d+-/, 'gop-' + newIndex + '-');
-            }
-            if (input.type === 'checkbox') {
-                input.checked = false;
-            } else if (input.type !== 'hidden') {
-                input.value = '';
-            }
-            if (input.name && input.name.includes('-numero')) {
-                input.value = newIndex + 1;
+        template.style.display = '';
+    
+        // Actualizamos atributos name, id y for
+        const regex = new RegExp(`${prefix}-\\d+-`, 'g');
+        const replacement = `${prefix}-${newIndex}-`;
+    
+        template.querySelectorAll('input, select, textarea, label').forEach(function(el) {
+            if (el.name) el.name = el.name.replace(regex, replacement);
+            if (el.id) el.id = el.id.replace(regex, replacement);
+            if (el.htmlFor) el.htmlFor = el.htmlFor.replace(regex, replacement);
+    
+            // Limpieza de valores
+            if (el.type === 'checkbox') {
+                el.checked = false;
+            } else if (el.name && el.name.endsWith('-id')) {
+                el.value = ''; // El input id debe existir pero vacío para indicar nuevo registro a Django
+            } else if (el.tagName !== 'LABEL') {
+                el.value = '';
             }
         });
-
-        const deleteCheckbox = template.querySelector('input[type=checkbox][name$=-DELETE]');
-        if (deleteCheckbox) {
-            deleteCheckbox.closest('.gop-form-row').querySelector('.btn-icon.danger').outerHTML =
-                '<button type="button" class="btn-icon danger remove-gop" title="Eliminar"><i class="fa-solid fa-trash"></i></button>';
+    
+        // Reemplaza o asegura el botón de eliminar
+        const delBtn = template.querySelector('.btn-icon.danger, .remove-gop');
+        if (delBtn) {
+            delBtn.className = 'btn-icon danger remove-gop';
+            delBtn.type = 'button';
+            delBtn.title = 'Eliminar';
+            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
         }
-
+    
         container.appendChild(template);
-        totalForms.value = newIndex + 1;
+    
+        // Actualiza el contador de Django
+        if (totalForms) {
+            totalForms.value = newIndex + 1;
+        }
+    
         bindRemoveButtons();
     });
-
+    
     function bindRemoveButtons() {
         container.querySelectorAll('.remove-gop').forEach(function(btn) {
             btn.onclick = function() {
                 const row = btn.closest('.gop-form-row');
-                row.remove();
-                reindexForms();
+                const deleteCheckbox = row.querySelector('input[type=checkbox][name$=-DELETE]');
+                const idInput = row.querySelector('input[name$="-id"]');
+    
+                if (idInput && idInput.value) {
+                    // Registro existente en base de datos: marcar DELETE y ocultar
+                    if (deleteCheckbox) deleteCheckbox.checked = true;
+                    row.style.display = 'none';
+                } else {
+                    // Registro dinámico nuevo: remover del DOM
+                    row.remove();
+                    reindexForms();
+                }
             };
         });
     }
-
+    
     function reindexForms() {
         const rows = container.querySelectorAll('.gop-form-row');
+        const prefix = totalForms ? totalForms.name.replace('-TOTAL_FORMS', '') : 'gop';
+    
         rows.forEach(function(row, index) {
-            row.querySelectorAll('input, select, textarea').forEach(function(input) {
-                if (input.name) {
-                    input.name = input.name.replace(/gop-\d+-/, 'gop-' + index + '-');
-                    input.id = input.id.replace(/gop-\d+-/, 'gop-' + index + '-');
-                }
+            const regex = new RegExp(`${prefix}-\\d+-`, 'g');
+            const replacement = `${prefix}-${index}-`;
+    
+            row.querySelectorAll('input, select, textarea, label').forEach(function(el) {
+                if (el.name) el.name = el.name.replace(regex, replacement);
+                if (el.id) el.id = el.id.replace(regex, replacement);
+                if (el.htmlFor) el.htmlFor = el.htmlFor.replace(regex, replacement);
             });
         });
-        totalForms.value = rows.length;
+    
+        if (totalForms) {
+            totalForms.value = rows.length;
+        }
     }
-
+    
     bindRemoveButtons();
 })();
 </script>
