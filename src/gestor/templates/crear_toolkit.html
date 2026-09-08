@@ -106,43 +106,50 @@
 (function() {
     const container = document.getElementById('gop-forms');
     const addBtn = document.getElementById('add-gop');
-    
-    // Busca el input de TOTAL_FORMS sin importar el prefijo ('gop', 'gop_set', etc.)
     const totalForms = document.querySelector('input[name$="-TOTAL_FORMS"]');
     
+    // Guardamos una plantilla maestra en memoria desde el inicio
+    let formTemplate = null;
+    const initialRow = container.querySelector('.gop-form-row');
+    if (initialRow) {
+        formTemplate = initialRow.cloneNode(true);
+        // Limpiamos los valores de la plantilla base
+        formTemplate.style.display = '';
+        formTemplate.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (el.type === 'checkbox') el.checked = false;
+            else el.value = '';
+        });
+    }
+    
     addBtn.addEventListener('click', function() {
-        const forms = container.querySelectorAll('.gop-form-row');
-        if (forms.length === 0) return;
+        if (!formTemplate) return;
     
-        // Detecta el prefijo dinámicamente desde el nombre del management_form (ej: 'gop' o 'gop_set')
         const prefix = totalForms ? totalForms.name.replace('-TOTAL_FORMS', '') : 'gop';
-        const newIndex = totalForms ? parseInt(totalForms.value, 10) : forms.length;
-        
-        // Clonamos la primera fila
-        const template = forms[0].cloneNode(true);
-        template.style.display = '';
+        const rows = container.querySelectorAll('.gop-form-row');
+        const newIndex = rows.length;
     
-        // Actualizamos atributos name, id y for
-        const regex = new RegExp(`${prefix}-\\d+-`, 'g');
+        // Clonamos desde la plantilla maestra en memoria, no desde el DOM activo
+        const newRow = formTemplate.cloneNode(true);
+    
+        const regex = new RegExp(`${prefix}-(?:\\d+|__prefix__)-`, 'g');
         const replacement = `${prefix}-${newIndex}-`;
     
-        template.querySelectorAll('input, select, textarea, label').forEach(function(el) {
+        newRow.querySelectorAll('input, select, textarea, label').forEach(function(el) {
             if (el.name) el.name = el.name.replace(regex, replacement);
             if (el.id) el.id = el.id.replace(regex, replacement);
             if (el.htmlFor) el.htmlFor = el.htmlFor.replace(regex, replacement);
     
-            // Limpieza de valores
             if (el.type === 'checkbox') {
                 el.checked = false;
             } else if (el.name && el.name.endsWith('-id')) {
-                el.value = ''; // El input id debe existir pero vacío para indicar nuevo registro a Django
+                el.value = '';
             } else if (el.tagName !== 'LABEL') {
                 el.value = '';
             }
         });
     
-        // Reemplaza o asegura el botón de eliminar
-        const delBtn = template.querySelector('.btn-icon.danger, .remove-gop');
+        // Configurar el botón de eliminar
+        const delBtn = newRow.querySelector('.btn-icon.danger, .remove-gop');
         if (delBtn) {
             delBtn.className = 'btn-icon danger remove-gop';
             delBtn.type = 'button';
@@ -150,11 +157,10 @@
             delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
         }
     
-        container.appendChild(template);
+        container.appendChild(newRow);
     
-        // Actualiza el contador de Django
         if (totalForms) {
-            totalForms.value = newIndex + 1;
+            totalForms.value = container.querySelectorAll('.gop-form-row').length;
         }
     
         bindRemoveButtons();
@@ -168,11 +174,11 @@
                 const idInput = row.querySelector('input[name$="-id"]');
     
                 if (idInput && idInput.value) {
-                    // Registro existente en base de datos: marcar DELETE y ocultar
+                    // Registro existente en BD: marcar DELETE y ocultar
                     if (deleteCheckbox) deleteCheckbox.checked = true;
                     row.style.display = 'none';
                 } else {
-                    // Registro dinámico nuevo: remover del DOM
+                    // Registro nuevo: eliminar del DOM y reindexar
                     row.remove();
                     reindexForms();
                 }
