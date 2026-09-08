@@ -5,7 +5,7 @@ from django.utils import timezone
 class Toolkit(models.Model):
     nombre = models.CharField(max_length=255, unique=True)
     por_lineas = models.BooleanField(default=False)
-    meta = models.DecimalField(max_digits=5, decimal_places=2, default=100.00)
+    meta = models.DecimalField(max_digits=5, decimal_places=1, default=100.00)
     fecha_ultima_modificacion = models.DateField(default=timezone.now)
 
     def __str__(self):

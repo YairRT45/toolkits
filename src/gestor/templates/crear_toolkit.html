@@ -64,22 +64,34 @@
                 <div>
                     <label style="font-size:12px;color:#8c8d8f;">Proceso</label>
                     {{ gop_form.proceso }}
+                    {{ gop_form.proceso.errors }}
                 </div>
                 <div>
                     <label style="font-size:12px;color:#8c8d8f;">Pregunta</label>
                     {{ gop_form.pregunta }}
+                    {{ gop_form.pregunta.errors }}
                 </div>
+                {% comment %} <div style="display:flex;align-items:center;gap:4px;padding-top:18px;">
+                    {% if gop_form.instance.pk %}
+                        <span style="display:none;">{{ gop_form.DELETE }}</span>
+                        {{ gop_form.DELETE }}
+                        <label for="{{ gop_form.DELETE.id_for_label }}" class="btn-icon danger" title="Eliminar">
+                            <i class="fa-solid fa-trash"></i>
+                        </label>
+                    {% else %}
+                        <button type="button" class="btn-icon danger remove-gop" title="Eliminar">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    {% endif %}
+                </div> {% endcomment %}
+                <!-- Reemplaza el bloque de acciones por esto: -->
                 <div style="display:flex;align-items:center;gap:4px;padding-top:18px;">
                     {% if gop_form.instance.pk %}
-                    {{ gop_form.DELETE }}
-                    <label for="{{ gop_form.DELETE.id_for_label }}" class="btn-icon danger" title="Eliminar">
-                        <i class="fa-solid fa-trash"></i>
-                    </label>
-                    {% else %}
+                        <span style="display:none !important;">{{ gop_form.DELETE }}</span>
+                    {% endif %}
                     <button type="button" class="btn-icon danger remove-gop" title="Eliminar">
                         <i class="fa-solid fa-trash"></i>
                     </button>
-                    {% endif %}
                 </div>
                 {% for hidden in gop_form.hidden_fields %}{{ hidden }}{% endfor %}
             </div>
@@ -175,12 +187,15 @@
     
                 if (idInput && idInput.value) {
                     // Registro existente en BD: marcar DELETE y ocultar
-                    if (deleteCheckbox) deleteCheckbox.checked = true;
+                    // if (deleteCheckbox) deleteCheckbox.checked = true;
+                    if (deleteCheckbox) {
+                        deleteCheckbox.checked = true
+                    }
                     row.style.display = 'none';
                 } else {
                     // Registro nuevo: eliminar del DOM y reindexar
                     row.remove();
-                    reindexForms();
+                    // reindexForms();
                 }
             };
         });

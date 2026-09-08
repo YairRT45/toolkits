@@ -166,7 +166,14 @@
             background-color: #1a1b1d;
             border-radius: 12px;
             padding: 20px 28px;
+            border: 1px solid transparent; 
+            transition: border-color 0.2s ease, transform 0.2s ease;
         }
+
+        {% comment %} .card:hover {
+            border-color: #d4a017;
+            transform: translateY(-2px);
+        } {% endcomment %}
 
         .card-list {
             list-style: none;
@@ -180,6 +187,13 @@
             align-items: center;
             justify-content: space-between;
             position: relative;
+            border: 1px solid transparent; 
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .card-row:hover {
+            border-color: #d4a017;
+            transform: translateY(-2px);
         }
 
         .card-name {
@@ -515,6 +529,18 @@
             color: #e74c3c;
             font-size: 13px;
             margin-top: 6px;
+        }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 1000px #1a1b1d inset ;
+        -webkit-text-fill-color: #ffffff ;
+        transition: background-color 5000s ease-in-out 0s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(1);
         }
 
         {% block extra_css %}{% endblock %}

@@ -1,5 +1,6 @@
 from django import forms
-from django.forms import inlineformset_factory
+from django.core.exceptions import ValidationError
+from django.forms import BaseInlineFormSet, inlineformset_factory
 from .models import Toolkit, Gop, Revision, Gop_revision, PlanAccion
 
 
@@ -29,8 +30,28 @@ class GopForm(forms.ModelForm):
         }
 
 
+class BaseGopFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        preguntas = {}
+        for form in self.forms:
+            if not form.cleaned_data or form.cleaned_data.get('DELETE', False):
+                continue
+            pregunta = form.cleaned_data.get('pregunta')
+            if not pregunta:
+                continue
+            clave = pregunta.strip().lower()
+            if clave in preguntas:
+                form.add_error('pregunta', 'Esta pregunta ya se repite en otro GOP del mismo Toolkit.')
+            else:
+                preguntas[clave] = form
+
+
 GopFormSet = inlineformset_factory(
     Toolkit, Gop, form=GopForm,
+    formset=BaseGopFormSet,
     extra=1, can_delete=True, min_num=1, validate_min=True,
 )
 

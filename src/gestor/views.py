@@ -61,7 +61,10 @@ def crear_toolkit(request):
                     else:
                         messages.error(request, error)
         if not formset.is_valid():
-            messages.error(request, 'Debe incluir al menos un GOP.')
+            if formset.non_form_errors():
+                messages.error(request, 'Debe incluir al menos un GOP.')
+            else:
+                messages.error(request, 'Revise los errores en los GOPs.')
     else:
         form = ToolkitForm()
         formset = GopFormSet()
@@ -75,9 +78,11 @@ def crear_toolkit(request):
 
 def detalle_toolkit(request, pk):
     toolkit = get_object_or_404(Toolkit, pk=pk)
+    ultima_revision = ultima_revision = toolkit.revisiones.order_by('-fecha_revision', '-id').first()
     gops = toolkit.gops.all()
     return render(request, 'detalle_toolkit.html', {
         'toolkit': toolkit,
+        'revision': ultima_revision,
         'gops': gops,
         'nav_active': 'toolkits',
     })
@@ -106,7 +111,10 @@ def editar_toolkit(request, pk):
             messages.success(request, 'Toolkit actualizado correctamente.')
             return redirect('detalle_toolkit', pk=pk)
         if not formset.is_valid():
-            messages.error(request, 'Debe incluir al menos un GOP.')
+            if formset.non_form_errors():
+                messages.error(request, 'Debe incluir al menos un GOP.')
+            else:
+                messages.error(request, 'Revise los errores en los GOPs.')
     else:
         form = ToolkitForm(instance=toolkit)
         formset = GopFormSet(instance=toolkit)

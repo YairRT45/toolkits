@@ -53,8 +53,8 @@
         <table class="gops-table">
             <thead>
                 <tr>
+                    <th style="width:10%;">NO.</th>
                     <th style="width:14%;">Proceso</th>
-                    <th style="width:10%;">Código</th>
                     <th style="width:24%;">Pregunta</th>
                     <th style="width:22%;">Comentario</th>
                     <th style="width:10%;text-align:center;">Progreso</th>
@@ -64,8 +64,8 @@
             <tbody>
                 {% for gop in gops %}
                 <tr data-gop-id="{{ gop.id }}">
-                    <td>{{ gop.proceso }}</td>
                     <td>{{ gop.numero }}</td>
+                    <td>{{ gop.proceso }}</td>
                     <td>{{ gop.pregunta }}</td>
                     <td>
                         <input type="text" name="comentario_{{ gop.id }}" class="form-control form-control-sm" placeholder="Comentario" value="">
