@@ -83,7 +83,8 @@ class RevisionForm(forms.ModelForm):
 class PlanAccionForm(forms.ModelForm):
     gop_revision = forms.ModelChoiceField(
         queryset=Gop_revision.objects.none(),
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        empty_label="Selecciona un GOP",
+        widget=forms.Select(attrs={'class': 'form-control', }),
         label='GOP incumplido',
     )
 

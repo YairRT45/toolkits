@@ -37,3 +37,12 @@
     </form>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    const selectGop = document.getElementById('id_gop_revision');
+    if (selectGop && selectGop.options[0] && selectGop.options[0].value === '') {
+        selectGop.options[0].disabled = true;
+    }
+</script>
+{% endblock %}
