@@ -92,7 +92,7 @@ class PlanAccionForm(forms.ModelForm):
         model = PlanAccion
         fields = ['gop_revision', 'descripcion', 'responsable', 'fecha_limite']
         widgets = {
-            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descripción del plan de acción'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descripción del plan de acción',}),
             'responsable': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Responsable'}),
             'fecha_limite': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }

@@ -24,10 +24,6 @@
 
 <div class="dashboard-grid" style="margin-bottom:28px;">
     <div class="widget">
-        <div class="widget-title">Meta de cumplimiento</div>
-        <div class="widget-value warning">{{ toolkit.meta }}%</div>
-    </div>
-    <div class="widget">
         <div class="widget-title">Cumplimiento actual</div>
         <div class="widget-value {% if toolkit.porcentaje_actual >= toolkit.meta %}success{% else %}danger{% endif %}">
             {% if toolkit.porcentaje_actual is not None %}
@@ -36,6 +32,10 @@
                 —
             {% endif %}
         </div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">Meta de cumplimiento</div>
+        <div class="widget-value warning">{{ toolkit.meta }}%</div>
     </div>
     <div class="widget">
         <div class="widget-title">GOPs</div>

@@ -302,6 +302,39 @@
             margin-bottom: 20px;
         }
 
+        textarea.form-control {
+            resize: none;
+        }
+
+        /* 1. Estándar moderno (Firefox y navegadores recientes) */
+        textarea.form-control {
+            scrollbar-width: thin;
+            scrollbar-color: #3a3b3d transparent; /* [color_del_deslizador] [color_del_riel] */
+        }
+
+        /* 2. Navegadores Chromium (Chrome, Edge, Brave, Safari) */
+        textarea.form-control::-webkit-scrollbar {
+            width: 8px; /* Ancho de la barra vertical */
+        }
+
+        textarea.form-control::-webkit-scrollbar-track {
+            background: transparent; /* Fondo del riel invisible/integrado */
+        }
+
+        textarea.form-control::-webkit-scrollbar-thumb {
+            background-color: #3a3b3d; /* Color del deslizador */
+            border-radius: 4px;
+        }
+
+        textarea.form-control::-webkit-scrollbar-thumb:hover {
+            background-color: #d4a017; /* Cambia a dorado sutil al pasar el cursor */
+        }
+
+        /* Opcional: Si no quieres que aparezca el scroll si el texto no desborda */
+        textarea.form-control {
+            overflow-y: auto;
+        } 
+
         .form-group label {
             display: block;
             margin-bottom: 8px;
@@ -540,10 +573,14 @@
 
         .progress-bar-fill {
             height: 100%;
-            background-color: #00b050;
+            {% comment %} background-color: #00b050; {% endcomment %}
             border-radius: 4px;
             transition: width 0.3s ease;
         }
+
+        .progress-bar-fill.success{ background-color: #00b050; }
+        .progress-bar-fill.danger { background-color: #e74c3c; }
+        .progress-bar-fill.warning { background-color: #d4a017; }
 
         .errorlist {
             list-style: none;
