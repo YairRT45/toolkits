@@ -161,6 +161,49 @@ def _agrupar_revisiones_por_fecha(toolkit):
     return fechas
 
 
+def _contexto_selectores(toolkit, fecha_actual_iso, es_global=False, linea_actual=None):
+    """Construye los datos para los selectores de fecha y de línea/global."""
+    grupos = _agrupar_revisiones_por_fecha(toolkit)
+
+    fechas_selector = []
+    for g in grupos:
+        fechas_selector.append({
+            'iso': g['fecha_iso'],
+            'label': g['fecha'].strftime('%d/%m/%Y'),
+            'selected': g['fecha_iso'] == fecha_actual_iso,
+            'id_revision': g['lineas'][0].id if not g['es_por_lineas'] else None,
+        })
+
+    lineas_selector = None
+    fechas_lineas_json = '{}'
+    if toolkit.por_lineas:
+        grupo_actual = next((g for g in grupos if g['fecha_iso'] == fecha_actual_iso), None)
+        lineas = grupo_actual['lineas'] if grupo_actual else []
+        lineas_selector = [
+            {
+                'id': rev.id,
+                'linea': rev.linea,
+                'selected': (not es_global and rev.linea == linea_actual),
+            }
+            for rev in lineas
+        ]
+        mapa = {}
+        for g in grupos:
+            if g['es_por_lineas']:
+                mapa[g['fecha_iso']] = {rev.linea: rev.id for rev in g['lineas']}
+        fechas_lineas_json = json.dumps(mapa)
+
+    return {
+        'por_lineas': toolkit.por_lineas,
+        'fechas_selector': fechas_selector,
+        'lineas_selector': lineas_selector,
+        'fechas_lineas_json': fechas_lineas_json,
+        'fecha_actual_iso': fecha_actual_iso,
+        'es_global': es_global,
+        'linea_actual': linea_actual,
+    }
+
+
 def listar_revisiones(request, pk):
     toolkit = get_object_or_404(Toolkit, pk=pk)
     
@@ -420,15 +463,16 @@ def consultar_revision(request, pk, revision_id):
     revision = get_object_or_404(Revision, pk=revision_id, toolkit=toolkit)
     gop_revisiones = revision.gop_revision_set.select_related('gop').prefetch_related('evidencias')
 
-    fechas = _agrupar_revisiones_por_fecha(toolkit)
+    selectores = _contexto_selectores(
+        toolkit, revision.fecha_revision.isoformat(), es_global=False, linea_actual=revision.linea,
+    )
 
     return render(request, 'consultar_revision.html', {
         'toolkit': toolkit,
         'revision': revision,
         'gop_revisiones': gop_revisiones,
-        'fechas': fechas,
-        'es_global': False,
         'nav_active': 'toolkits',
+        **selectores,
     })
 
 
@@ -463,14 +507,12 @@ def consultar_revision_global(request, pk, fecha):
             'porcentaje': round(completadas / cantidad_lineas * 100, 1) if cantidad_lineas else 0,
         })
 
-    fechas = _agrupar_revisiones_por_fecha(toolkit)
+    selectores = _contexto_selectores(toolkit, fecha, es_global=True)
 
     return render(request, 'consultar_revision.html', {
         'toolkit': toolkit,
         'revision': None,
         'gop_revisiones': None,
-        'fechas': fechas,
-        'es_global': True,
         'fecha_global': fecha,
         'fecha_display': fecha_date,
         'promedio_global': promedio,
@@ -479,6 +521,7 @@ def consultar_revision_global(request, pk, fecha):
         'gops_consolidados': gops_consolidados,
         'meta': toolkit.meta,
         'nav_active': 'toolkits',
+        **selectores,
     })
 
 
@@ -500,7 +543,9 @@ def desglose_revision(request, pk, revision_id=None):
         completado=False,
     ).count()
 
-    fechas = _agrupar_revisiones_por_fecha(toolkit)
+    selectores = _contexto_selectores(
+        toolkit, revision.fecha_revision.isoformat(), es_global=False, linea_actual=revision.linea,
+    )
 
     return render(request, 'desglose_revision.html', {
         'toolkit': toolkit,
@@ -512,8 +557,8 @@ def desglose_revision(request, pk, revision_id=None):
         'gop_menor_pct': gop_info[1],
         'planes_abiertos': planes_abiertos,
         'chart_data': json.dumps(chart_data),
-        'fechas': fechas,
         'nav_active': 'toolkits',
+        **selectores,
     })
 
 
@@ -556,12 +601,11 @@ def desglose_revision_global(request, pk, fecha):
     ).count()
 
     chart_data = calcular_cumplimiento_mensual_global(toolkit)
-    fechas = _agrupar_revisiones_por_fecha(toolkit)
+    selectores = _contexto_selectores(toolkit, fecha, es_global=True)
 
     return render(request, 'desglose_revision.html', {
         'toolkit': toolkit,
         'revision': None,
-        'es_global': True,
         'fecha_global': fecha,
         'fecha_display': fecha_date,
         'porcentaje': promedio,
@@ -571,10 +615,10 @@ def desglose_revision_global(request, pk, fecha):
         'gop_menor_pct': gop_menor_global['porcentaje'] if gop_menor_global else 0,
         'planes_abiertos': planes_abiertos,
         'chart_data': json.dumps(chart_data),
-        'fechas': fechas,
         'gops_consolidados': gops_consolidados,
         'cantidad_lineas': cantidad_lineas,
         'nav_active': 'toolkits',
+        **selectores,
     })
 
 

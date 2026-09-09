@@ -20,28 +20,28 @@
         {% endif %}
     </h1>
     <div class="toolbar">
-        <select class="form-control" style="width:auto;" onchange="if(this.value) window.location=this.value">
-            {% for grupo in fechas %}
-                {% if grupo.es_por_lineas %}
-                <optgroup label="{{ grupo.fecha|date:'d/m/Y' }}">
-                    <option value="{% url 'consultar_revision_global' toolkit.pk grupo.fecha_iso %}" {% if es_global and fecha_global == grupo.fecha_iso %}selected{% endif %}>
-                        Global
-                    </option>
-                    {% for linea in grupo.lineas %}
-                    <option value="{% url 'consultar_revision' toolkit.pk linea.id %}" {% if not es_global and revision.id == linea.id %}selected{% endif %}>
-                        Línea {{ linea.linea }}
-                    </option>
-                    {% endfor %}
-                </optgroup>
-                {% else %}
-                    {% for linea in grupo.lineas %}
-                    <option value="{% url 'consultar_revision' toolkit.pk linea.id %}" {% if revision and revision.id == linea.id %}selected{% endif %}>
-                        {{ grupo.fecha|date:"d/m/Y" }}
-                    </option>
-                    {% endfor %}
-                {% endif %}
+        {% if por_lineas %}
+        <select id="sel-fecha" class="form-control" style="width:auto;"
+                data-url-global="{% url 'consultar_revision_global' toolkit.pk '99990101' %}"
+                data-url-linea="{% url 'consultar_revision' toolkit.pk 987654321 %}"
+                onchange="cambiarFecha(this.value)">
+            {% for f in fechas_selector %}
+            <option value="{{ f.iso }}" {% if f.selected %}selected{% endif %}>{{ f.label }}</option>
             {% endfor %}
         </select>
+        <select id="sel-linea" class="form-control" style="width:auto;" onchange="if(this.value) window.location=this.value">
+            <option value="{% url 'consultar_revision_global' toolkit.pk fecha_actual_iso %}" {% if es_global %}selected{% endif %}>Global</option>
+            {% for li in lineas_selector %}
+            <option value="{% url 'consultar_revision' toolkit.pk li.id %}" {% if li.selected %}selected{% endif %}>Línea {{ li.linea }}</option>
+            {% endfor %}
+        </select>
+        {% else %}
+        <select class="form-control" style="width:auto;" onchange="if(this.value) window.location=this.value">
+            {% for f in fechas_selector %}
+            <option value="{% url 'consultar_revision' toolkit.pk f.id_revision %}" {% if f.selected %}selected{% endif %}>{{ f.label }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
         {% if not es_global %}
         <a href="{% url 'desglose_revision_fecha' toolkit.pk revision.id %}" class="btn btn-secondary">Desglose</a>
         {% if revision.gops_no_cumplidos.count %}
@@ -67,7 +67,7 @@
         <div class="widget-value warning">{{ meta }}%</div>
     </div>
     <div class="widget">
-        <div class="widget-title">Resultados globales</div>
+        <div class="widget-title">GOPs incompletos globales</div>
         <div class="widget-value {% if total_incompletos %}danger{% else %}success{% endif %}">{{ total_incompletos }}</div>
     </div>
     <div class="widget">
@@ -177,5 +177,26 @@
         </table>
     </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if por_lineas %}
+<script>
+const fechasLineas = {{ fechas_lineas_json|safe }};
+const selFecha = document.getElementById('sel-fecha');
+const urlGlobal = selFecha.dataset.urlGlobal.replace('99990101', '__X__');
+const urlLinea = selFecha.dataset.urlLinea.replace('987654321', '__L__');
+const lineaActual = {% if es_global %}null{% else %}{{ linea_actual }}{% endif %};
+
+function cambiarFecha(iso) {
+    if (!iso) return;
+    if (lineaActual !== null && fechasLineas[iso] && fechasLineas[iso][lineaActual]) {
+        window.location = urlLinea.replace('__L__', fechasLineas[iso][lineaActual]);
+    } else {
+        window.location = urlGlobal.replace('__X__', iso);
+    }
+}
+</script>
 {% endif %}
 {% endblock %}
