@@ -122,16 +122,27 @@ def todos_gops_no_cumplidos():
 
 def resumen_toolkit(toolkit):
     """Datos de resumen para un toolkit."""
-    revision = toolkit.ultima_revision
     gop_info = gop_menor_cumplimiento(toolkit)
+
+    promedio = None
+    gops_pendientes = 0
+    ultimas_revisiones = toolkit.revisiones.order_by('-fecha_revision')
+    if ultimas_revisiones.exists():
+        fecha_ultima = ultimas_revisiones.first().fecha_revision
+        revs = toolkit.revisiones.filter(fecha_revision=fecha_ultima)
+        total = sum(r.gop_revision_set.count() for r in revs)
+        cumplidos = sum(r.gops_cumplidos_count() for r in revs)
+        promedio = round(cumplidos / total * 100, 1) if total else 0
+        gops_pendientes = total - cumplidos
+
     return {
         'toolkit': toolkit,
-        'porcentaje': revision.porcentaje_cumplimiento() if revision else None,
+        'porcentaje': promedio,
         'meta': toolkit.meta,
-        'gops_no_cumplidos': contar_gops_no_cumplidos(toolkit),
+        'gops_no_cumplidos': gops_pendientes,
         'gop_menor': gop_info[0],
         'gop_menor_pct': gop_info[1],
-        'chart_data': calcular_cumplimiento_por_revision(toolkit),
+        'chart_data': calcular_cumplimiento_promedio_por_fecha(toolkit),
     }
 
 def calcular_cumplimiento_por_revision(toolkit, limite=10):
@@ -147,6 +158,27 @@ def calcular_cumplimiento_por_revision(toolkit, limite=10):
             'porcentaje': rev.porcentaje_cumplimiento()
         }
         for rev in ultimas_revisiones
+    ]
+
+
+def calcular_cumplimiento_promedio_por_fecha(toolkit, limite=10):
+    """Promedio por fecha consolidando todas las líneas de cada fecha."""
+    revisiones = toolkit.revisiones.order_by('-fecha_revision')
+    por_fecha = {}
+    for rev in revisiones:
+        por_fecha.setdefault(rev.fecha_revision, {'total': 0, 'cumplidos': 0})
+        por_fecha[rev.fecha_revision]['total'] += rev.gop_revision_set.count()
+        por_fecha[rev.fecha_revision]['cumplidos'] += rev.gops_cumplidos_count()
+
+    fechas = sorted(por_fecha.keys(), reverse=True)[:limite]
+    fechas.reverse()
+
+    return [
+        {
+            'label': f.strftime('%d/%m/%Y'),
+            'porcentaje': round(por_fecha[f]['cumplidos'] / por_fecha[f]['total'] * 100, 1) if por_fecha[f]['total'] else 0,
+        }
+        for f in fechas
     ]
 
 

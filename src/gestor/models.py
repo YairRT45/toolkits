@@ -16,6 +16,14 @@ class Toolkit(models.Model):
         return self.revisiones.order_by('-fecha_revision', '-id').first()
 
     def porcentaje_actual(self):
+        if not self.revisiones.exists():
+            return None
+        if self.por_lineas:
+            ultima_fecha = self.revisiones.order_by('-fecha_revision', '-id').first().fecha_revision
+            revs = self.revisiones.filter(fecha_revision=ultima_fecha)
+            total = sum(r.gop_revision_set.count() for r in revs)
+            cumplidos = sum(r.gops_cumplidos_count() for r in revs)
+            return round(cumplidos / total * 100, 1) if total else 0
         revision = self.ultima_revision
         if not revision:
             return None
