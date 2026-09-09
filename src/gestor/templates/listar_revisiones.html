@@ -2,6 +2,101 @@
 
 {% block title %}Revisiones - {{ toolkit.nombre }}{% endblock %}
 
+{% block extra_css %}
+.revision-group {
+    padding: 0;
+    overflow: hidden;
+}
+.revision-group .revision-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 20px 28px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.revision-group .revision-header:hover {
+    background-color: #1f2022;
+}
+.revision-group .toggle-icon {
+    margin-left: 36px;
+    color: #8c8d8f;
+    font-size: 14px;
+    transition: transform 0.2s ease;
+}
+.revision-group.expandida .toggle-icon {
+    transform: rotate(180deg);
+}
+.lineas-container {
+    display: none;
+    border-top: 1px solid #2a2b2d;
+    padding: 16px 28px 24px;
+    background-color: #161718;
+}
+.revision-group.expandida .lineas-container {
+    display: block;
+}
+.linea-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    border: 1px solid #2a2b2d;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background-color: #1a1b1d;
+    transition: border-color 0.2s ease;
+}
+.linea-item:hover {
+    border-color: #d4a017;
+}
+.linea-item:last-child {
+    margin-bottom: 0;
+}
+.linea-item .linea-nombre {
+    font-size: 16px;
+    font-weight: 500;
+    color: #f1f1f1;
+    flex: 1;
+}
+.linea-item .linea-stats {
+    display: flex;
+    gap: 32px;
+    color: #7b7c80;
+    font-size: 13px;
+}
+.linea-item .linea-stats .cumplimiento {
+    color: #f1f1f1;
+    font-weight: 600;
+}
+.linea-item .linea-actions {
+    margin-left: 24px;
+    display: flex;
+    gap: 8px;
+}
+.promedio-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    margin-top: 12px;
+    background-color: rgba(0, 176, 80, 0.12);
+    border: 1px solid rgba(0, 176, 80, 0.3);
+    border-radius: 8px;
+    font-weight: 600;
+    color: #00b050;
+}
+.promedio-box .promedio-valor {
+    font-size: 18px;
+}
+.revision-simple {
+    text-decoration: none;
+}
+{% endblock %}
+
 {% block content %}
 <div class="breadcrumb">
     <a href="{% url 'listar_toolkits' %}">Toolkits</a>
@@ -14,34 +109,61 @@
 <div class="section-header">
     <h1>Revisiones</h1>
     <div class="toolbar">
-        {% if toolkit.por_lineas %}
-        <select class="form-control" style="width:auto;" onchange="window.location='?linea='+this.value">
-            <option value="">Todas las líneas</option>
-            <option value="0" {% if request.GET.linea == '0' %}selected{% endif %}>General</option>
-            {% for i in lineas_filtro %}
-            <option value="{{ i }}" {% if request.GET.linea == i|stringformat:"s" %}selected{% endif %}>Línea {{ i }}</option>
-            {% endfor %}
-        </select>
-        {% endif %}
         <a href="{% url 'realizar_revision' toolkit.pk %}" class="btn btn-primary">Nueva revisión</a>
     </div>
 </div>
 
 {% if revisiones %}
 <ul class="card-list">
-    {% for rev in revisiones %}
-    <li class="card card-row">
-        <span class="card-name">{{ rev.fecha_revision|date:"d/m/Y" }}</span>
-        <div class="card-meta">
-            <span>{% if rev.linea == 0 %}General{% else %}Línea {{ rev.linea }}{% endif %}</span>
-            <span>Cumplimiento: {{ rev.porcentaje_cumplimiento }}%</span>
-            <span>GOPs incompletos: {{ rev.gops_no_cumplidos.count }}</span>
+    {% for rev_grupo in revisiones %}
+    {% if rev_grupo.es_agrupada %}
+    <li class="card revision-group" id="rev-{{ rev_grupo.fecha|date:'Y-m-d' }}">
+        <div class="revision-header" onclick="toggleRevision('rev-{{ rev_grupo.fecha|date:'Y-m-d' }}')">
+            <span class="card-name">{{ rev_grupo.fecha|date:"d/m/Y" }}</span>
+            <div class="card-meta">
+                <span>Promedio: {{ rev_grupo.promedio_cumplimiento }}%</span>
+                <span>Incompletos: {{ rev_grupo.total_incompletos }}</span>
+                <span>14 líneas</span>
+            </div>
+            <span class="toggle-icon"><i class="fa-solid fa-chevron-down"></i></span>
         </div>
-        <div style="display:flex;gap:8px;margin-left:32px;">
-            <a href="{% url 'consultar_revision' toolkit.pk rev.id %}" class="btn btn-secondary btn-sm">Ver</a>
-            <a href="{% url 'desglose_revision_fecha' toolkit.pk rev.id %}" class="btn btn-secondary btn-sm">Desglose</a>
+        <div class="lineas-container">
+            {% for linea_rev in rev_grupo.lineas %}
+            <div class="linea-item">
+                <span class="linea-nombre">Línea {{ linea_rev.linea }}</span>
+                <div class="linea-stats">
+                    <span class="cumplimiento">Cumplimiento: {{ linea_rev.porcentaje_cumplimiento }}%</span>
+                    <span>Incompletos: {{ linea_rev.gops_no_cumplidos.count }}</span>
+                </div>
+                <div class="linea-actions">
+                    <a href="{% url 'consultar_revision' toolkit.pk linea_rev.id %}" class="btn btn-secondary btn-sm">Ver</a>
+                    <a href="{% url 'desglose_revision_fecha' toolkit.pk linea_rev.id %}" class="btn btn-secondary btn-sm">Desglose</a>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="promedio-box">
+                <span>Promedio general de todas las líneas</span>
+                <span class="promedio-valor">{{ rev_grupo.promedio_cumplimiento }}%</span>
+                <div style="display:flex;gap:8px;">
+                    <a href="{% url 'consultar_revision_global' toolkit.pk rev_grupo.fecha|date:'Y-m-d' %}" class="btn btn-secondary btn-sm">Ver</a>
+                    <a href="{% url 'desglose_revision_global' toolkit.pk rev_grupo.fecha|date:'Y-m-d' %}" class="btn btn-secondary btn-sm">Desglose</a>
+                </div>
+            </div>
         </div>
     </li>
+    {% else %}
+    <li class="card card-row">
+        <span class="card-name">{{ rev_grupo.fecha|date:"d/m/Y" }}</span>
+        <div class="card-meta">
+            <span>Cumplimiento: {{ rev_grupo.revision.porcentaje_cumplimiento }}%</span>
+            <span>GOPs incompletos: {{ rev_grupo.revision.gops_no_cumplidos.count }}</span>
+        </div>
+        <div class="card-actions" style="display:flex;gap:8px;">
+            <a href="{% url 'consultar_revision' toolkit.pk rev_grupo.revision.id %}" class="btn btn-secondary btn-sm">Ver</a>
+            <a href="{% url 'desglose_revision_fecha' toolkit.pk rev_grupo.revision.id %}" class="btn btn-secondary btn-sm">Desglose</a>
+        </div>
+    </li>
+    {% endif %}
     {% endfor %}
 </ul>
 {% else %}
@@ -51,4 +173,11 @@
     <a href="{% url 'realizar_revision' toolkit.pk %}" class="btn btn-primary" style="margin-top:16px;">Realizar primera revisión</a>
 </div>
 {% endif %}
+
+<script>
+function toggleRevision(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('expandida');
+}
+</script>
 {% endblock %}

@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+from datetime import date
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -14,6 +15,7 @@ from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm
 from .utils import (
     resumen_toolkit,
     calcular_cumplimiento_mensual, calcular_cumplimiento_mensual_ampliado,
+    calcular_cumplimiento_mensual_global,
     gop_menor_cumplimiento, contar_gops_no_cumplidos, gops_no_cumplidos_por_revision,
 )
 
@@ -142,18 +144,78 @@ def eliminar_toolkit(request, pk):
     })
 
 
+def _agrupar_revisiones_por_fecha(toolkit):
+    revisiones = toolkit.revisiones.all().order_by('-fecha_revision', 'linea')
+    grupos = {}
+    for rev in revisiones:
+        grupos.setdefault(rev.fecha_revision, []).append(rev)
+    fechas = []
+    for fecha in sorted(grupos.keys(), reverse=True):
+        lineas = sorted(grupos[fecha], key=lambda r: r.linea)
+        fechas.append({
+            'fecha': fecha,
+            'fecha_iso': fecha.isoformat(),
+            'es_por_lineas': toolkit.por_lineas,
+            'lineas': lineas,
+        })
+    return fechas
+
+
 def listar_revisiones(request, pk):
     toolkit = get_object_or_404(Toolkit, pk=pk)
-    revisiones = toolkit.revisiones.all()
+    
     if toolkit.por_lineas:
-        linea = request.GET.get('linea')
-        if linea is not None and linea != '':
-            revisiones = revisiones.filter(linea=int(linea))
+        from django.db.models import Avg
+        revisiones_raw = toolkit.revisiones.all()
+        
+        fechas_agrupadas = {}
+        for rev in revisiones_raw:
+            fecha_key = rev.fecha_revision
+            if fecha_key not in fechas_agrupadas:
+                fechas_agrupadas[fecha_key] = {
+                    'fecha': fecha_key,
+                    'lineas': [],
+                    'primer_id': rev.id,
+                }
+            fechas_agrupadas[fecha_key]['lineas'].append(rev)
+        
+        revisiones_agrupadas = []
+        for fecha_key in sorted(fechas_agrupadas.keys(), reverse=True):
+            grupo = fechas_agrupadas[fecha_key]
+            lineas = grupo['lineas']
+            
+            total_gops = 0
+            total_cumplidos = 0
+            total_incompletos = 0
+            
+            for rev in lineas:
+                total_gops += rev.gop_revision_set.count()
+                total_cumplidos += rev.gops_cumplidos_count()
+                total_incompletos += rev.gops_no_cumplidos().count()
+            
+            promedio_cumplimiento = round((total_cumplidos / total_gops * 100), 1) if total_gops > 0 else 0
+            
+            revisiones_agrupadas.append({
+                'fecha': grupo['fecha'],
+                'lineas': sorted(lineas, key=lambda x: x.linea),
+                'promedio_cumplimiento': promedio_cumplimiento,
+                'total_incompletos': total_incompletos,
+                'primer_id': grupo['primer_id'],
+                'es_agrupada': True,
+            })
     else:
-        revisiones = revisiones.filter(linea=Revision.LINEA_GENERAL)
+        revisiones_agrupadas = []
+        revisiones = toolkit.revisiones.filter(linea=Revision.LINEA_GENERAL)
+        for rev in revisiones:
+            revisiones_agrupadas.append({
+                'fecha': rev.fecha_revision,
+                'revision': rev,
+                'es_agrupada': False,
+            })
+    
     return render(request, 'listar_revisiones.html', {
         'toolkit': toolkit,
-        'revisiones': revisiones,
+        'revisiones': revisiones_agrupadas,
         'lineas_filtro': range(1, 15),
         'nav_active': 'toolkits',
     })
@@ -358,13 +420,64 @@ def consultar_revision(request, pk, revision_id):
     revision = get_object_or_404(Revision, pk=revision_id, toolkit=toolkit)
     gop_revisiones = revision.gop_revision_set.select_related('gop').prefetch_related('evidencias')
 
-    fechas = toolkit.revisiones.values_list('id', 'fecha_revision', 'linea').order_by('-fecha_revision')
+    fechas = _agrupar_revisiones_por_fecha(toolkit)
 
     return render(request, 'consultar_revision.html', {
         'toolkit': toolkit,
         'revision': revision,
         'gop_revisiones': gop_revisiones,
         'fechas': fechas,
+        'es_global': False,
+        'nav_active': 'toolkits',
+    })
+
+
+def consultar_revision_global(request, pk, fecha):
+    toolkit = get_object_or_404(Toolkit, pk=pk)
+    try:
+        fecha_date = date.fromisoformat(fecha)
+    except ValueError:
+        messages.error(request, 'Fecha inválida.')
+        return redirect('listar_revisiones', pk=pk)
+
+    revisiones = toolkit.revisiones.filter(fecha_revision=fecha_date)
+    if not revisiones.exists():
+        messages.warning(request, 'No hay revisiones registradas para esa fecha.')
+        return redirect('listar_revisiones', pk=pk)
+
+    total_gops = sum(rev.gop_revision_set.count() for rev in revisiones)
+    total_cumplidos = sum(rev.gops_cumplidos_count() for rev in revisiones)
+    promedio = round(total_cumplidos / total_gops * 100, 1) if total_gops else 0
+    total_incompletos = total_gops - total_cumplidos
+    cantidad_lineas = revisiones.count()
+
+    gops_consolidados = []
+    for gop in toolkit.gops.all():
+        completadas = Gop_revision.objects.filter(
+            revision__in=revisiones, gop=gop, completo=True
+        ).count()
+        gops_consolidados.append({
+            'gop': gop,
+            'completadas': completadas,
+            'total_lineas': cantidad_lineas,
+            'porcentaje': round(completadas / cantidad_lineas * 100, 1) if cantidad_lineas else 0,
+        })
+
+    fechas = _agrupar_revisiones_por_fecha(toolkit)
+
+    return render(request, 'consultar_revision.html', {
+        'toolkit': toolkit,
+        'revision': None,
+        'gop_revisiones': None,
+        'fechas': fechas,
+        'es_global': True,
+        'fecha_global': fecha,
+        'fecha_display': fecha_date,
+        'promedio_global': promedio,
+        'total_incompletos': total_incompletos,
+        'cantidad_lineas': cantidad_lineas,
+        'gops_consolidados': gops_consolidados,
+        'meta': toolkit.meta,
         'nav_active': 'toolkits',
     })
 
@@ -379,14 +492,15 @@ def desglose_revision(request, pk, revision_id=None):
             messages.warning(request, 'No hay revisiones registradas para este Toolkit.')
             return redirect('detalle_toolkit', pk=pk)
 
-    chart_data = calcular_cumplimiento_mensual(toolkit)
+    chart_linea = revision.linea if (toolkit.por_lineas and revision.linea != Revision.LINEA_GENERAL) else None
+    chart_data = calcular_cumplimiento_mensual(toolkit, linea=chart_linea)
     gop_info = gop_menor_cumplimiento(toolkit)
     planes_abiertos = PlanAccion.objects.filter(
         gop_revision__revision__toolkit=toolkit,
         completado=False,
     ).count()
 
-    fechas = toolkit.revisiones.values_list('id', 'fecha_revision', 'linea').order_by('-fecha_revision')
+    fechas = _agrupar_revisiones_por_fecha(toolkit)
 
     return render(request, 'desglose_revision.html', {
         'toolkit': toolkit,
@@ -403,12 +517,76 @@ def desglose_revision(request, pk, revision_id=None):
     })
 
 
+def desglose_revision_global(request, pk, fecha):
+    toolkit = get_object_or_404(Toolkit, pk=pk)
+    try:
+        fecha_date = date.fromisoformat(fecha)
+    except ValueError:
+        messages.error(request, 'Fecha inválida.')
+        return redirect('listar_revisiones', pk=pk)
+
+    revisiones = toolkit.revisiones.filter(fecha_revision=fecha_date)
+    if not revisiones.exists():
+        messages.warning(request, 'No hay revisiones registradas para esa fecha.')
+        return redirect('listar_revisiones', pk=pk)
+
+    total_gops = sum(rev.gop_revision_set.count() for rev in revisiones)
+    total_cumplidos = sum(rev.gops_cumplidos_count() for rev in revisiones)
+    promedio = round(total_cumplidos / total_gops * 100, 1) if total_gops else 0
+    total_incompletos = total_gops - total_cumplidos
+    cantidad_lineas = revisiones.count()
+
+    gops_consolidados = []
+    for gop in toolkit.gops.all():
+        completadas = Gop_revision.objects.filter(
+            revision__in=revisiones, gop=gop, completo=True
+        ).count()
+        gops_consolidados.append({
+            'gop': gop,
+            'completadas': completadas,
+            'total_lineas': cantidad_lineas,
+            'porcentaje': round(completadas / cantidad_lineas * 100, 1) if cantidad_lineas else 0,
+        })
+    gops_consolidados.sort(key=lambda x: x['porcentaje'])
+    gop_menor_global = gops_consolidados[0] if gops_consolidados else None
+
+    planes_abiertos = PlanAccion.objects.filter(
+        gop_revision__revision__in=revisiones,
+        completado=False,
+    ).count()
+
+    chart_data = calcular_cumplimiento_mensual_global(toolkit)
+    fechas = _agrupar_revisiones_por_fecha(toolkit)
+
+    return render(request, 'desglose_revision.html', {
+        'toolkit': toolkit,
+        'revision': None,
+        'es_global': True,
+        'fecha_global': fecha,
+        'fecha_display': fecha_date,
+        'porcentaje': promedio,
+        'meta': toolkit.meta,
+        'gops_no_cumplidos': total_incompletos,
+        'gop_menor': gop_menor_global['gop'] if gop_menor_global else None,
+        'gop_menor_pct': gop_menor_global['porcentaje'] if gop_menor_global else 0,
+        'planes_abiertos': planes_abiertos,
+        'chart_data': json.dumps(chart_data),
+        'fechas': fechas,
+        'gops_consolidados': gops_consolidados,
+        'cantidad_lineas': cantidad_lineas,
+        'nav_active': 'toolkits',
+    })
+
+
 def ampliar_grafica(request, pk):
     toolkit = get_object_or_404(Toolkit, pk=pk)
-    chart_data = calcular_cumplimiento_mensual_ampliado(toolkit, meses=12)
+    linea_q = request.GET.get('linea')
+    linea = int(linea_q) if linea_q is not None and linea_q != '' else None
+    chart_data = calcular_cumplimiento_mensual_ampliado(toolkit, meses=12, linea=linea)
     return render(request, 'ampliar_grafica.html', {
         'toolkit': toolkit,
         'chart_data': json.dumps(chart_data),
+        'linea': linea,
         'nav_active': 'toolkits',
     })
 

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from .models import Revision
 
 
-def calcular_cumplimiento_mensual(toolkit, meses=6):
+def calcular_cumplimiento_mensual(toolkit, meses=6, linea=None):
     """Retorna lista de {label, porcentaje} para los últimos N meses."""
     hoy = timezone.now().date()
     datos = []
@@ -19,8 +19,12 @@ def calcular_cumplimiento_mensual(toolkit, meses=6):
         revisiones = toolkit.revisiones.filter(
             fecha_revision__gte=inicio,
             fecha_revision__lt=fin,
-            linea=Revision.LINEA_GENERAL,
         )
+        if linea is not None:
+            revisiones = revisiones.filter(linea=linea)
+        else:
+            revisiones = revisiones.filter(linea=Revision.LINEA_GENERAL)
+
         if revisiones.exists():
             porcentajes = [r.porcentaje_cumplimiento() for r in revisiones]
             promedio = round(sum(porcentajes) / len(porcentajes), 1)
@@ -32,8 +36,42 @@ def calcular_cumplimiento_mensual(toolkit, meses=6):
     return datos
 
 
-def calcular_cumplimiento_mensual_ampliado(toolkit, meses=12):
-    return calcular_cumplimiento_mensual(toolkit, meses)
+def calcular_cumplimiento_mensual_global(toolkit, meses=6):
+    """Promedio mensual considerando todas las líneas de cada fecha."""
+    hoy = timezone.now().date()
+    datos = []
+    for i in range(meses - 1, -1, -1):
+        inicio = (hoy.replace(day=1) - timedelta(days=i * 30)).replace(day=1)
+        if inicio.month == 12:
+            fin = inicio.replace(year=inicio.year + 1, month=1, day=1)
+        else:
+            fin = inicio.replace(month=inicio.month + 1, day=1)
+
+        revisiones = toolkit.revisiones.filter(
+            fecha_revision__gte=inicio,
+            fecha_revision__lt=fin,
+        )
+        if revisiones.exists():
+            por_fecha = {}
+            for rev in revisiones:
+                por_fecha.setdefault(rev.fecha_revision, {'total': 0, 'cumplidos': 0})
+                por_fecha[rev.fecha_revision]['total'] += rev.gop_revision_set.count()
+                por_fecha[rev.fecha_revision]['cumplidos'] += rev.gops_cumplidos_count()
+            pct_fechas = [
+                round(v['cumplidos'] / v['total'] * 100, 1) if v['total'] else 0
+                for v in por_fecha.values()
+            ]
+            promedio = round(sum(pct_fechas) / len(pct_fechas), 1)
+        else:
+            promedio = None
+
+        label = inicio.strftime('%b %Y')
+        datos.append({'label': label, 'porcentaje': promedio})
+    return datos
+
+
+def calcular_cumplimiento_mensual_ampliado(toolkit, meses=12, linea=None):
+    return calcular_cumplimiento_mensual(toolkit, meses, linea=linea)
 
 
 def gop_menor_cumplimiento(toolkit):

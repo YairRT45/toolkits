@@ -12,23 +12,106 @@
 </div>
 
 <div class="section-header">
-    <h1>Revisión del {{ revision.fecha_revision|date:"d/m/Y" }}</h1>
+    <h1>
+        {% if es_global %}
+        Revisión global del {{ fecha_display|date:"d/m/Y" }}
+        {% else %}
+        Revisión del {{ revision.fecha_revision|date:"d/m/Y" }}
+        {% endif %}
+    </h1>
     <div class="toolbar">
         <select class="form-control" style="width:auto;" onchange="if(this.value) window.location=this.value">
-            <option value="">Fechas</option>
-            {% for id, fecha, linea in fechas %}
-            <option value="{% url 'consultar_revision' toolkit.pk id %}" {% if id == revision.id %}selected{% endif %}>
-                {{ fecha|date:"d/m/Y" }}{% if linea %} — Línea {{ linea }}{% endif %}
-            </option>
-        {% endfor %}
+            {% for grupo in fechas %}
+                {% if grupo.es_por_lineas %}
+                <optgroup label="{{ grupo.fecha|date:'d/m/Y' }}">
+                    <option value="{% url 'consultar_revision_global' toolkit.pk grupo.fecha_iso %}" {% if es_global and fecha_global == grupo.fecha_iso %}selected{% endif %}>
+                        Global
+                    </option>
+                    {% for linea in grupo.lineas %}
+                    <option value="{% url 'consultar_revision' toolkit.pk linea.id %}" {% if not es_global and revision.id == linea.id %}selected{% endif %}>
+                        Línea {{ linea.linea }}
+                    </option>
+                    {% endfor %}
+                </optgroup>
+                {% else %}
+                    {% for linea in grupo.lineas %}
+                    <option value="{% url 'consultar_revision' toolkit.pk linea.id %}" {% if revision and revision.id == linea.id %}selected{% endif %}>
+                        {{ grupo.fecha|date:"d/m/Y" }}
+                    </option>
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
         </select>
+        {% if not es_global %}
         <a href="{% url 'desglose_revision_fecha' toolkit.pk revision.id %}" class="btn btn-secondary">Desglose</a>
         {% if revision.gops_no_cumplidos.count %}
         <a href="{% url 'crear_plan_accion' toolkit.pk revision.id %}" class="btn btn-primary">Crear plan de acción</a>
         {% endif %}
+        {% endif %}
     </div>
 </div>
 
+{% if es_global %}
+<div class="dashboard-grid" style="margin-bottom:28px;">
+    <div class="widget">
+        <div class="widget-title">Cumplimiento global</div>
+        <div class="widget-value {% if promedio_global >= meta %}success{% else %}danger{% endif %}">
+            {{ promedio_global }}%
+        </div>
+        <div class="progress-bar">
+            <div class="progress-bar-fill {% if promedio_global >= meta %}success{% else %}danger{% endif %}" style="width:{{ promedio_global }}%"></div>
+        </div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">Meta</div>
+        <div class="widget-value warning">{{ meta }}%</div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">Resultados globales</div>
+        <div class="widget-value {% if total_incompletos %}danger{% else %}success{% endif %}">{{ total_incompletos }}</div>
+    </div>
+    <div class="widget">
+        <div class="widget-title">Líneas evaluadas</div>
+        <div class="widget-value" style="font-size:24px;">{{ cantidad_lineas }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Resultado por GOP (líneas cumplidas)</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>Proceso</th>
+                    <th>Pregunta</th>
+                    <th>Cumplimiento</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in gops_consolidados %}
+                <tr>
+                    <td>{{ item.gop.numero }}</td>
+                    <td>{{ item.gop.proceso }}</td>
+                    <td>{{ item.gop.pregunta }}</td>
+                    <td>{{ item.completadas }} de {{ item.total_lineas }} líneas ({{ item.porcentaje }}%)</td>
+                    <td>
+                        {% if item.completadas == item.total_lineas %}
+                        <span class="badge badge-success">Completo</span>
+                        {% elif item.completadas == 0 %}
+                        <span class="badge badge-danger">Incompleto</span>
+                        {% else %}
+                        <span class="badge" style="background-color:rgba(212,160,23,0.2);color:#d4a017;">Parcial</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
 <div class="dashboard-grid" style="margin-bottom:28px;">
     <div class="widget">
         <div class="widget-title">Cumplimiento</div>
@@ -94,4 +177,5 @@
         </table>
     </div>
 </div>
+{% endif %}
 {% endblock %}
