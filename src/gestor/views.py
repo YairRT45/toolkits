@@ -12,9 +12,9 @@ from django.urls import reverse
 from .models import Toolkit, Gop, Revision, Gop_revision, Evidencia, PlanAccion
 from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm
 from .utils import (
-    resumen_toolkit, todos_gops_no_cumplidos,
+    resumen_toolkit,
     calcular_cumplimiento_mensual, calcular_cumplimiento_mensual_ampliado,
-    gop_menor_cumplimiento, contar_gops_no_cumplidos,
+    gop_menor_cumplimiento, contar_gops_no_cumplidos, gops_no_cumplidos_por_revision,
 )
 
 
@@ -413,10 +413,16 @@ def ampliar_grafica(request, pk):
     })
 
 
-def gops_no_cumplidos(request):
-    resultados = todos_gops_no_cumplidos()
+def gops_no_cumplidos(request, toolkit_id=None, revision_id=None):
+    resultados = gops_no_cumplidos_por_revision(toolkit_id, revision_id)
+    toolkits = Toolkit.objects.all()
+    toolkit_seleccionado = None
+    if toolkit_id:
+        toolkit_seleccionado = Toolkit.objects.filter(pk=toolkit_id).first()
     return render(request, 'gops_no_cumplidos.html', {
         'resultados': resultados,
+        'toolkits': toolkits,
+        'toolkit_seleccionado': toolkit_seleccionado,
         'nav_active': 'resumen',
     })
 

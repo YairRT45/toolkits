@@ -6,6 +6,8 @@ urlpatterns = [
     path('crear/', views.crear_toolkit, name='crear_toolkit'),
     path('resumen/', views.resumen, name='resumen'),
     path('gops-no-cumplidos/', views.gops_no_cumplidos, name='gops_no_cumplidos'),
+    path('gops-no-cumplidos/<int:toolkit_id>/', views.gops_no_cumplidos, name='gops_no_cumplidos_toolkit'),
+    path('gops-no-cumplidos/<int:toolkit_id>/<int:revision_id>/', views.gops_no_cumplidos, name='gops_no_cumplidos_revision'),
     path('planes-accion/', views.listar_planes_accion, name='listar_planes_accion_global'),
 
     path('<int:pk>/', views.detalle_toolkit, name='detalle_toolkit'),

@@ -41,7 +41,7 @@
         <div class="widget-title">Meta del Toolkit</div>
         <div class="widget-value">{{ meta }}%</div>
     </div>
-    <a href="{% url 'gops_no_cumplidos' %}" class="widget widget-link card-row">
+    <a href="{% url 'gops_no_cumplidos_revision' toolkit.pk revision.pk %}" class="widget widget-link card-row">
         <div class="widget-title">GOPs no cumplidos</div>
         <div class="widget-value warning">{{ gops_no_cumplidos }}</div>
     </a>

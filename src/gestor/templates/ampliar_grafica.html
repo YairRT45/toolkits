@@ -31,15 +31,17 @@
 <script>
 const chartData = {{ chart_data|safe }};
 new Chart(document.getElementById('chartAmpliada'), {
-    type: 'bar',
+    type: 'line',
     data: {
         labels: chartData.map(d => d.label),
         datasets: [{
             label: 'Cumplimiento (%)',
             data: chartData.map(d => d.porcentaje),
-            backgroundColor: 'rgba(0, 176, 80, 0.6)',
+            backgroundColor: 'rgba(0, 176, 80, 0.1)',
             borderColor: '#00b050',
-            borderWidth: 1,
+            fill: true,
+            tension: 0.3, 
+            spanGaps:true,
         }]
     },
     options: {

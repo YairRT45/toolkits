@@ -5,7 +5,17 @@
 {% block content %}
 <div class="section-header">
     <h1>GOPs no cumplidos</h1>
-    <a href="{% url 'resumen' %}" class="btn btn-secondary">Volver al resumen</a>
+    <div class="toolbar">
+        <select class="form-control" style="width:auto;" onchange="if(this.value) window.location=this.value">
+            <option value="{% url 'gops_no_cumplidos' %}">Todos los toolkits</option>
+            {% for tk in toolkits %}
+            <option value="{% url 'gops_no_cumplidos_toolkit' tk.pk %}" {% if toolkit_seleccionado and toolkit_seleccionado.pk == tk.pk %}selected{% endif %}>
+                {{ tk.nombre }}
+            </option>
+            {% endfor %}
+        </select>
+        <a href="{% url 'resumen' %}" class="btn btn-secondary">Volver al resumen</a>
+    </div>
 </div>
 
 {% if resultados %}
@@ -15,23 +25,29 @@
             <thead>
                 <tr>
                     <th>Toolkit</th>
+                    <th>Revisión</th>
                     <th>GOP</th>
                     <th>Proceso</th>
                     <th>Pregunta</th>
-                    <th>Revisión</th>
                     <th>Comentario</th>
                 </tr>
             </thead>
             <tbody>
-                {% for item in resultados %}
+                {% for grupo in resultados %}
+                {% for gop in grupo.gops %}
                 <tr>
-                    <td><a href="{% url 'detalle_toolkit' item.toolkit.pk %}" style="color:#d4a017;">{{ item.toolkit.nombre }}</a></td>
-                    <td>{{ item.gop.numero }}</td>
-                    <td>{{ item.gop.proceso }}</td>
-                    <td>{{ item.gop.pregunta }}</td>
-                    <td>{{ item.revision.fecha_revision|date:"d/m/Y" }}</td>
-                    <td>{{ item.comentario|default:"—" }}</td>
+                    {% comment %} {% if forloop.first %}
+                    <td rowspan="{{ grupo.gops|length }}"><a href="{% url 'detalle_toolkit' grupo.toolkit.pk %}" style="color:#d4a017;">{{ grupo.toolkit.nombre }}</a></td>
+                    <td rowspan="{{ grupo.gops|length }}">{{ grupo.revision.fecha_revision|date:"d/m/Y" }}</td>
+                    {% endif %} {% endcomment %}
+                    <td><a href="{% url 'detalle_toolkit' grupo.toolkit.pk %}" style="color:#d4a017;">{{ grupo.toolkit.nombre }}</a></td>
+                    <td>{{ grupo.revision.fecha_revision|date:"d/m/Y" }}</td>
+                    <td>{{ gop.gop.numero }}</td>
+                    <td>{{ gop.gop.proceso }}</td>
+                    <td>{{ gop.gop.pregunta }}</td>
+                    <td>{{ gop.comentario|default:"—" }}</td>
                 </tr>
+                {% endfor %}
                 {% endfor %}
             </tbody>
         </table>

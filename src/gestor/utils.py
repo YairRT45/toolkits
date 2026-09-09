@@ -1,5 +1,6 @@
 from datetime import timedelta
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 from .models import Revision
 
@@ -97,14 +98,9 @@ def resumen_toolkit(toolkit):
 
 def calcular_cumplimiento_por_revision(toolkit, limite=10):
     """Obtiene las últimas N revisiones individuales ordenadas cronológicamente."""
-    # Obtenemos las últimas revisiones en orden descendente (las más recientes)
-    # Reemplaza 'revisiones' por el related_name correspondiente si es distinto
-    # Reemplaza 'fecha' por el nombre exacto de tu campo de fecha/hora
     ultimas_revisiones = list(
         toolkit.revisiones.order_by('-fecha_revision')[:limite]
     )
-
-    # Las invertimos para que en la gráfica aparezcan de izquierda a derecha en el tiempo
     ultimas_revisiones.reverse()
 
     return [
@@ -114,3 +110,41 @@ def calcular_cumplimiento_por_revision(toolkit, limite=10):
         }
         for rev in ultimas_revisiones
     ]
+
+
+def gops_no_cumplidos_por_revision(toolkit_id=None, revision_id=None):
+    """Obtiene GOps no cumplidos filtrados por toolkit y/o revisión específica."""
+    from .models import Toolkit, Revision
+
+    if revision_id:
+        revision = get_object_or_404(Revision, pk=revision_id)
+        toolkit = revision.toolkit
+        return [{
+            'toolkit': toolkit,
+            'revision': revision,
+            'gops': list(revision.gops_no_cumplidos().select_related('gop')),
+        }]
+
+    if toolkit_id:
+        toolkit = get_object_or_404(Toolkit, pk=toolkit_id)
+        revision = toolkit.ultima_revision
+        if not revision:
+            return []
+        return [{
+            'toolkit': toolkit,
+            'revision': revision,
+            'gops': list(revision.gops_no_cumplidos().select_related('gop')),
+        }]
+
+    resultados = []
+    for toolkit in Toolkit.objects.all():
+        revision = toolkit.ultima_revision
+        if revision:
+            gops = list(revision.gops_no_cumplidos().select_related('gop'))
+            if gops:
+                resultados.append({
+                    'toolkit': toolkit,
+                    'revision': revision,
+                    'gops': gops,
+                })
+    return resultados
