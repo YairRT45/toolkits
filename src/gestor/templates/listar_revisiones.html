@@ -37,7 +37,7 @@
             <span>Cumplimiento: {{ rev.porcentaje_cumplimiento }}%</span>
             <span>GOPs incompletos: {{ rev.gops_no_cumplidos.count }}</span>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;margin-left:32px;">
             <a href="{% url 'consultar_revision' toolkit.pk rev.id %}" class="btn btn-secondary btn-sm">Ver</a>
             <a href="{% url 'desglose_revision_fecha' toolkit.pk rev.id %}" class="btn btn-secondary btn-sm">Desglose</a>
         </div>

@@ -36,17 +36,17 @@
             {{ revision.porcentaje_cumplimiento }}%
         </div>
         <div class="progress-bar">
-            <div class="progress-bar-fill" style="width:{{ revision.porcentaje_cumplimiento }}%"></div>
+            <div class="progress-bar-fill {% if revision.porcentaje_cumplimiento >= toolkit.meta %}success{% else %}danger{% endif %}" style="width:{{ revision.porcentaje_cumplimiento }}%"></div>
         </div>
     </div>
     <div class="widget">
         <div class="widget-title">Meta</div>
         <div class="widget-value warning">{{ toolkit.meta }}%</div>
     </div>
-    <div class="widget">
+    <a href="{% url 'gops_no_cumplidos_revision' toolkit.pk revision.pk %}" class="widget widget-link card-row">
         <div class="widget-title">GOPs no cumplidos</div>
         <div class="widget-value danger">{{ revision.gops_no_cumplidos.count }}</div>
-    </div>
+    </a>
     {% if revision.linea %}
     <div class="widget">
         <div class="widget-title">Línea</div>
