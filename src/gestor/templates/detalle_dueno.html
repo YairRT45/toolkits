@@ -64,7 +64,7 @@
                         <tbody>
                             {% for plan in item.planes_abiertos %}
                             <tr>
-                                <td>GOP {{ plan.gop_revision.gop.numero }}</td>
+                                <td>{{ plan.gop_revision.gop.pregunta }}</td>
                                 <td>{{ plan.descripcion|truncatechars:60 }}</td>
                                 <td>{{ plan.responsable }}</td>
                                 <td>{{ plan.fecha_limite|date:"d/m/Y" }}</td>

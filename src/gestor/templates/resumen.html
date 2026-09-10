@@ -26,7 +26,7 @@
             <div class="toolkit-card-info">
                 <div class="toolkit-card-label">Puntos de atención</div>
                 <div class="toolkit-card-detail">GOPs pendientes: {{ item.gops_no_cumplidos }}</div>
-                <div class="toolkit-card-detail">Proceso con menor cumplimiento: {{ item.gop_menor.numero|default:"—" }}</div>
+                {% comment %} <div class="toolkit-card-detail">Proceso con menor cumplimiento: {{ item.gop_menor.pregunta|default:"—" }}</div> {% endcomment %}
             </div>
         </div>
     </a>
