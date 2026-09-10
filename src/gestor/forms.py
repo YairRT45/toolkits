@@ -13,6 +13,10 @@ class DuenoForm(forms.ModelForm):
             'apellido_m': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apellido materno'}),
             'foto': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         }
+        labels = {
+            'apellido_p': 'Apellido paterno',
+            'apellido_m': 'Apellido materno'
+        }
 
 
 class ToolkitForm(forms.ModelForm):

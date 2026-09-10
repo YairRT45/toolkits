@@ -1,0 +1,435 @@
+{% extends 'base.html' %}
+
+{% block title %}Nuevo Dueño{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'duenos' %}">Dueños</a>
+    <span>/</span>
+    <span>Nuevo Dueño</span>
+</div>
+
+<div class="section-header">
+    <h1>Nuevo Dueño</h1>
+</div>
+
+<div class="card" style="max-width:760px;">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+            {% if field.name == 'foto' %}
+            <div id="foto-preview" class="foto-preview" hidden>
+                <div class="foto-preview-circle">
+                    <img id="foto-preview-img" alt="Foto seleccionada">
+                </div>
+                <div class="foto-preview-meta">
+                    <div id="foto-filename" class="foto-filename"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'duenos' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<div id="crop-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="crop-modal-title">
+        <div class="modal-header">
+            <h2 id="crop-modal-title">Recortar foto</h2>
+            <button type="button" id="modal-close" class="modal-close" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="crop-stage" id="crop-stage">
+                <img id="cropImage" alt="Foto a recortar" hidden>
+                <div id="crop-circle" class="crop-circle"></div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="btn-cancelar" class="btn btn-secondary">Cancelar</button>
+            <button type="button" id="btn-aplicar" class="btn btn-primary">
+                <i class="fa-solid fa-check"></i> Seleccionar
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+input[type="file"].form-control {
+    padding: 6px;
+    cursor: pointer;
+}
+
+input[type="file"].form-control::file-selector-button {
+    background-color: #3a3b3d;
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    margin-right: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+input[type="file"].form-control::file-selector-button:hover {
+    background-color: #4a4b4d;
+}
+
+.foto-preview {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.foto-preview[hidden] {
+    display: none;
+}
+
+.foto-preview-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid #d4a017;
+    background: #161718;
+    flex-shrink: 0;
+}
+
+.foto-preview-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.foto-preview-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.foto-filename {
+    font-size: 13px;
+    color: #8c8d8f;
+}
+
+.form-hint {
+    font-size: 13px;
+    color: #7b7c80;
+    margin-top: 8px;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-overlay[hidden] {
+    display: none;
+}
+
+.modal {
+    background: #1a1b1d;
+    border: 1px solid #2a2b2d;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 440px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #8c8d8f;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.modal-close:hover {
+    color: #ffffff;
+}
+
+.modal-body {
+    display: flex;
+    justify-content: center;
+}
+
+.crop-stage {
+    position: relative;
+    width: min(380px, 100%);
+    height: auto;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+    background: #161718;
+    border: 1px solid #2a2b2d;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.crop-stage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.crop-circle {
+    position: absolute;
+    border-radius: 50%;
+    box-shadow: 0 0 0 9999px rgba(18, 19, 20, 0.55);
+    border: 1px solid #d4a017;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.crop-stage .cropper-view-box,
+.crop-stage .cropper-crop-box {
+    outline: none;
+}
+
+.crop-stage .cropper-view-box .cropper-grid,
+.crop-stage .cropper-dashed,
+.crop-stage .cropper-line,
+.crop-stage .cropper-point {
+    display: none !important;
+}
+
+.crop-stage .cropper-face {
+    cursor: move;
+}
+
+.modal-side {
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.preview-title {
+    font-size: 13px;
+    color: #8c8d8f;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.preview-circle {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid #d4a017;
+    background: #161718;
+}
+
+.preview-circle canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 50%;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const fileInput = document.getElementById('id_foto');
+    const modalOverlay = document.getElementById('crop-modal');
+    const cropStage = document.getElementById('crop-stage');
+    const cropImage = document.getElementById('cropImage');
+    const circleEl = document.getElementById('crop-circle');
+    const btnAplicar = document.getElementById('btn-aplicar');
+    const btnCancelar = document.getElementById('btn-cancelar');
+    const btnCerrar = document.getElementById('modal-close');
+    const fotoPreview = document.getElementById('foto-preview');
+    const fotoPreviewImg = document.getElementById('foto-preview-img');
+    const fotoFilename = document.getElementById('foto-filename');
+
+    let cropper = null;
+    let recorteAplicado = false;
+    let archivoAplicado = null;
+
+    function actualizarCirculo() {
+        if (!cropper) return;
+        const container = cropStage.querySelector('.cropper-container');
+        const cropBox = cropStage.querySelector('.cropper-crop-box');
+        if (!container || !cropBox) return;
+        const cr = container.getBoundingClientRect();
+        const br = cropBox.getBoundingClientRect();
+        circleEl.style.left = (br.left - cr.left) + 'px';
+        circleEl.style.top = (br.top - cr.top) + 'px';
+        circleEl.style.width = br.width + 'px';
+        circleEl.style.height = br.width + 'px';
+    }
+
+    function alListo() {
+        if (!cropper) return;
+        const cont = cropper.getContainerData();
+        const lado = Math.min(cont.width, cont.height);
+        cropper.setCropBoxData({
+            left: (cont.width - lado) / 2,
+            top: (cont.height - lado) / 2,
+            width: lado,
+            height: lado
+        });
+        const canvas = cropper.getCanvasData();
+        const objetivo = lado * 1.15;
+        const factor = Math.max(objetivo / canvas.width, objetivo / canvas.height);
+        cropper.zoom(factor);
+        actualizarCirculo();
+    }
+
+    function cerrarModal() {
+        modalOverlay.hidden = true;
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        if (!recorteAplicado) {
+            cropImage.hidden = true;
+        }
+    }
+
+    function abrirModal() {
+        modalOverlay.hidden = false;
+        cropImage.hidden = false;
+        requestAnimationFrame(function () {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            cropper = new Cropper(cropImage, {
+                aspectRatio: 1,
+                viewMode: 3,
+                dragMode: 'move',
+                background: false,
+                cropBoxMovable: false,
+                cropBoxResizable: false,
+                toggleDragModeOnDblclick: false,
+                autoCropArea: 0.9,
+                ready: alListo,
+                crop: actualizarCirculo
+            });
+        });
+    }
+
+    fileInput.addEventListener('change', function () {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        if (!file.type || file.type.indexOf('image/') !== 0) {
+            alert('Selecciona un archivo de imagen.');
+            fileInput.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            cropImage.onload = abrirModal;
+            cropImage.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function archivoDesdeCanvas(canvas, nombre) {
+        return new Promise(function (resolve) {
+            canvas.toBlob(function (blob) {
+                const base = (nombre || 'foto').replace(/\.[^.]+$/, '');
+                const archivo = new File([blob], base + '.jpg', { type: 'image/jpeg' });
+                resolve(archivo);
+            }, 'image/jpeg', 0.9);
+        });
+    }
+
+    btnAplicar.addEventListener('click', function () {
+        if (!cropper) return;
+        const canvas = cropper.getCroppedCanvas({ width: 512, height: 512 });
+        const prev = document.createElement('canvas');
+        prev.width = 160;
+        prev.height = 160;
+        prev.getContext('2d').drawImage(canvas, 0, 0, 160, 160);
+        fotoPreviewImg.src = prev.toDataURL('image/jpeg', 0.9);
+
+        const nombre = fileInput.files && fileInput.files[0] ? fileInput.files[0].name : 'foto.jpg';
+        archivoDesdeCanvas(canvas, nombre).then(function (archivo) {
+            archivoAplicado = archivo;
+            const dt = new DataTransfer();
+            dt.items.add(archivo);
+            fileInput.files = dt.files;
+            fotoFilename.textContent = archivo.name;
+        });
+
+        recorteAplicado = true;
+        fotoPreview.hidden = false;
+        cerrarModal();
+    });
+
+    function cancelar() {
+        if (recorteAplicado && archivoAplicado) {
+            const dt = new DataTransfer();
+            dt.items.add(archivoAplicado);
+            fileInput.files = dt.files;
+        } else {
+            fileInput.value = '';
+            fotoPreview.hidden = true;
+        }
+        cerrarModal();
+    }
+
+    btnCancelar.addEventListener('click', cancelar);
+    btnCerrar.addEventListener('click', cancelar);
+
+    modalOverlay.addEventListener('click', function (e) {
+        if (e.target === modalOverlay) {
+            cancelar();
+        }
+    });
+})();
+</script>
+{% endblock %}

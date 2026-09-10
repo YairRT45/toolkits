@@ -3,7 +3,13 @@
 {% block title %}Dueños{% endblock %}
 
 {% block content %}
-<h1 style="margin-bottom:28px;">Dueños</h1>
+<div class="section-header">
+    <h1>Dueños</h1>
+    <a href="{% url 'crear_dueno' %}" class="btn btn-nuevo">
+        <i class="fa-solid fa-plus"></i>
+        Nuevo Dueño
+    </a>
+</div>
 
 {% if duenos %}
 <div class="duenos-grid">

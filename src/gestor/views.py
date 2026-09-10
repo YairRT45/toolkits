@@ -11,7 +11,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.urls import reverse
 
 from .models import Dueno, Toolkit, Gop, Revision, Gop_revision, Evidencia, PlanAccion
-from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm, PlanAccionGlobalForm
+from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm, PlanAccionGlobalForm, DuenoForm
 from .utils import (
     resumen_toolkit,
     calcular_cumplimiento_mensual, calcular_cumplimiento_mensual_ampliado,
@@ -34,6 +34,21 @@ def duenos(request):
         })
     return render(request, 'duenos.html', {
         'duenos': datos,
+        'nav_active': 'duenos',
+    })
+
+
+def crear_dueno(request):
+    if request.method == 'POST':
+        form = DuenoForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Dueño guardado correctamente.')
+            return redirect('duenos')
+    else:
+        form = DuenoForm()
+    return render(request, 'crear_dueno.html', {
+        'form': form,
         'nav_active': 'duenos',
     })
 
