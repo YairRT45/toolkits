@@ -128,26 +128,12 @@ class PlanAccionForm(forms.ModelForm):
 
 
 class PlanAccionGlobalForm(forms.ModelForm):
-    gop = forms.ModelChoiceField(
-        queryset=Gop.objects.none(),
-        empty_label="Selecciona un GOP",
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        label='GOP incumplido',
-    )
 
     class Meta:
         model = PlanAccion
-        fields = ['gop', 'descripcion', 'responsable', 'fecha_limite']
+        fields = ['descripcion', 'responsable', 'fecha_limite']
         widgets = {
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descripción del plan de acción'}),
             'responsable': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Responsable'}),
             'fecha_limite': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
-
-    def __init__(self, *args, gops=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        if gops is not None:
-            self.fields['gop'].queryset = gops
-            self.fields['gop'].label_from_instance = (
-                lambda gop: f"GOP {gop.numero}: {gop.pregunta}"
-            )

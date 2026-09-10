@@ -27,6 +27,9 @@ urlpatterns = [
     path('<int:pk>/desglose/global/<str:fecha>/', views.desglose_revision_global, name='desglose_revision_global'),
     path('<int:pk>/grafica/', views.ampliar_grafica, name='ampliar_grafica'),
     path('<int:pk>/planes-accion/', views.listar_planes_accion, name='listar_planes_accion'),
+    path('<int:pk>/planes-accion/<int:plan_id>/cerrar/', views.cerrar_plan_accion, name='cerrar_plan_accion'),
+    path('<int:pk>/planes-accion/<int:plan_id>/reabrir/', views.reabrir_plan_accion, name='reabrir_plan_accion'),
     path('<int:pk>/revision/<int:revision_id>/plan-accion/', views.crear_plan_accion, name='crear_plan_accion'),
     path('<int:pk>/revision/global/<str:fecha>/plan-accion/', views.crear_plan_accion_global, name='crear_plan_accion_global'),
+    path('<int:pk>/revision/global/<str:fecha>/gops-por-linea/', views.obtener_gops_por_linea, name='obtener_gops_por_linea'),
 ]

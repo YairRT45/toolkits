@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
 from django.urls import reverse
+from django.http import JsonResponse
 
 from .models import Dueno, Toolkit, Gop, Revision, Gop_revision, Evidencia, PlanAccion
 from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm, PlanAccionGlobalForm, DuenoForm
@@ -774,6 +775,50 @@ def listar_planes_accion(request, pk=None):
     })
 
 
+def cerrar_plan_accion(request, pk, plan_id):
+    plan = get_object_or_404(PlanAccion, pk=plan_id, gop_revision__revision__toolkit__pk=pk)
+    plan.completado = True
+    plan.save()
+    messages.success(request, 'Plan de acción cerrado correctamente.')
+    return redirect('listar_planes_accion', pk=pk)
+
+
+def reabrir_plan_accion(request, pk, plan_id):
+    plan = get_object_or_404(PlanAccion, pk=plan_id, gop_revision__revision__toolkit__pk=pk)
+    plan.completado = False
+    plan.save()
+    messages.success(request, 'Plan de acción reabierto correctamente.')
+    return redirect('listar_planes_accion', pk=pk)
+
+
+def obtener_gops_por_linea(request, pk, fecha):
+    toolkit = get_object_or_404(Toolkit, pk=pk)
+    linea = request.GET.get('linea')
+    
+    if not linea:
+        return JsonResponse({'error': 'Línea no especificada'}, status=400)
+    
+    try:
+        linea = int(linea)
+        fecha_date = date.fromisoformat(fecha)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Parámetros inválidos'}, status=400)
+    
+    revision = toolkit.revisiones.filter(fecha_revision=fecha_date, linea=linea).first()
+    if not revision:
+        return JsonResponse({'gops': []})
+    
+    gops_incumplidos = revision.gops_no_cumplidos().select_related('gop')
+    gops_data = [{
+        'id': gr.gop.id,
+        'numero': gr.gop.numero,
+        'pregunta': gr.gop.pregunta,
+        'gop_revision_id': gr.id,
+    } for gr in gops_incumplidos]
+    
+    return JsonResponse({'gops': gops_data})
+
+
 def crear_plan_accion(request, pk, revision_id):
     toolkit = get_object_or_404(Toolkit, pk=pk)
     revision = get_object_or_404(Revision, pk=revision_id, toolkit=toolkit)
@@ -813,47 +858,48 @@ def crear_plan_accion_global(request, pk, fecha):
         messages.warning(request, 'No hay revisiones registradas para esa fecha.')
         return redirect('consultar_revision_global', pk=pk, fecha=fecha)
 
-    cantidad_lineas = revisiones.count()
-    gops_incumplidos = []
-    for gop in toolkit.gops.all():
-        completadas = Gop_revision.objects.filter(
-            revision__in=revisiones, gop=gop, completo=True
-        ).count()
-        if completadas < cantidad_lineas:
-            gops_incumplidos.append(gop)
-
-    if not gops_incumplidos:
-        messages.warning(request, 'No hay GOPs incumplidos en esta fecha.')
-        return redirect('consultar_revision_global', pk=pk, fecha=fecha)
-
-    gops_incumplidos_qs = Gop.objects.filter(pk__in=[g.pk for g in gops_incumplidos])
+    lineas_disponibles = list(revisiones.values_list('linea', flat=True).order_by('linea'))
 
     if request.method == 'POST':
-        form = PlanAccionGlobalForm(request.POST, gops=gops_incumplidos_qs)
-        if form.is_valid():
-            gop = form.cleaned_data['gop']
+        form = PlanAccionGlobalForm(request.POST)
+        gop_revision_id = request.POST.get('gop_revision')
+        linea = request.POST.get('linea')
+        if form.is_valid() and linea:
+            linea = int(linea)
             descripcion = form.cleaned_data['descripcion']
             responsable = form.cleaned_data['responsable']
             fecha_limite = form.cleaned_data['fecha_limite']
-            grs_incumplidos = Gop_revision.objects.filter(
-                revision__in=revisiones, gop=gop, completo=False
+
+            if not gop_revision_id:
+                messages.error(request, 'Debes seleccionar un GOP incumplido.')
+                return redirect('consultar_revision_global', pk=pk, fecha=fecha)
+
+            gop_revision = Gop_revision.objects.filter(
+                pk=gop_revision_id,
+                revision__toolkit=toolkit,
+                revision__fecha_revision=fecha_date,
+                revision__linea=linea,
+                completo=False,
+            ).first()
+
+            if not gop_revision:
+                messages.error(request, 'GOP incumplido no válido para la línea seleccionada.')
+                return redirect('consultar_revision_global', pk=pk, fecha=fecha)
+
+            PlanAccion.objects.create(
+                gop_revision=gop_revision,
+                descripcion=descripcion,
+                responsable=responsable,
+                fecha_limite=fecha_limite,
             )
-            creados = 0
-            for gr in grs_incumplidos:
-                PlanAccion.objects.create(
-                    gop_revision=gr,
-                    descripcion=descripcion,
-                    responsable=responsable,
-                    fecha_limite=fecha_limite,
-                )
-                creados += 1
+
             messages.success(
                 request,
-                f'Plan de acción creado correctamente para {creados} línea(s) del GOP {gop.numero}.',
+                f'Plan de acción creado para GOP {gop_revision.gop.numero} en Línea {linea}.',
             )
             return redirect('consultar_revision_global', pk=pk, fecha=fecha)
     else:
-        form = PlanAccionGlobalForm(gops=gops_incumplidos_qs)
+        form = PlanAccionGlobalForm()
 
     return render(request, 'crear_plan_accion_global.html', {
         'form': form,
@@ -861,7 +907,7 @@ def crear_plan_accion_global(request, pk, fecha):
         'revisiones': revisiones,
         'fecha_display': fecha_date,
         'fecha_actual_iso': fecha,
-        'gops_incumplidos_count': len(gops_incumplidos),
+        'lineas_disponibles': lineas_disponibles,
         'nav_active': 'toolkits',
     })
 

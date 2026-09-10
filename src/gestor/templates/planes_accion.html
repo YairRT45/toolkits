@@ -32,6 +32,7 @@
                     <th>Responsable</th>
                     <th>Fecha límite</th>
                     <th>Estado</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -47,6 +48,17 @@
                         <span class="badge badge-success">Completado</span>
                         {% else %}
                         <span class="badge badge-danger">Abierto</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if plan.completado %}
+                        <a href="{% url 'reabrir_plan_accion' plan.gop_revision.revision.toolkit.pk plan.pk %}" class="btn btn-sm btn-warning" title="Reabrir">
+                            <i class="fa-solid fa-rotate-left"></i> Reabrir
+                        </a>
+                        {% else %}
+                        <a href="{% url 'cerrar_plan_accion' plan.gop_revision.revision.toolkit.pk plan.pk %}" class="btn btn-sm btn-success" title="Cerrar">
+                            <i class="fa-solid fa-check"></i> Cerrar
+                        </a>
                         {% endif %}
                     </td>
                 </tr>

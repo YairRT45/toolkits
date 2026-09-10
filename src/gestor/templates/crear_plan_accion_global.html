@@ -18,9 +18,27 @@
 <div class="card" style="max-width:700px;">
     <p style="color:#8c8d8f;margin-bottom:24px;">
         Revisión global del {{ fecha_display|date:"d/m/Y" }} —
-        {{ gops_incumplidos_count }} GOP(s) con al menos una línea incumplida.
-        Al guardar se creará un plan de acción por cada línea incumplida del GOP seleccionado.
+        Selecciona una línea y un GOP incumplido para crear un plan de acción específico.
     </p>
+
+    <div class="form-row" style="display:flex;gap:16px;margin-bottom:24px;">
+        <div class="form-group" style="flex:1;">
+            <label for="id_linea">Línea</label>
+            <select id="id_linea" name="linea" class="form-control" required>
+                <option value="">Selecciona una línea</option>
+                {% for linea in lineas_disponibles %}
+                <option value="{{ linea }}">Línea {{ linea }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+            <label for="id_gop_select">GOP incumplido</label>
+            <select id="id_gop_select" class="form-control" required>
+                <option value="">Selecciona una línea primero</option>
+            </select>
+            <input type="hidden" id="id_gop_revision" name="gop_revision" value="">
+        </div>
+    </div>
 
     <form method="post">
         {% csrf_token %}
@@ -41,9 +59,37 @@
 
 {% block extra_js %}
 <script>
-    const selectGop = document.getElementById('id_gop');
-    if (selectGop && selectGop.options[0] && selectGop.options[0].value === '') {
-        selectGop.options[0].disabled = true;
+    const selectLinea = document.getElementById('id_linea');
+    const selectGop = document.getElementById('id_gop_select');
+    const hiddenGopRevision = document.getElementById('id_gop_revision');
+    const urlGopsPorLinea = "{% url 'obtener_gops_por_linea' toolkit.pk fecha_actual_iso %}";
+
+    function cargarGops(linea) {
+        if (!linea) {
+            selectGop.innerHTML = '<option value="">Selecciona una línea primero</option>';
+            hiddenGopRevision.value = '';
+            return;
+        }
+
+        fetch(`${urlGopsPorLinea}?linea=${linea}`)
+            .then(response => response.json())
+            .then(data => {
+                selectGop.innerHTML = '<option value="">Selecciona un GOP</option>';
+                data.gops.forEach(gop => {
+                    const option = document.createElement('option');
+                    option.value = gop.gop_revision_id;
+                    option.textContent = `GOP ${gop.numero}: ${gop.pregunta}`;
+                    selectGop.appendChild(option);
+                });
+            });
     }
+
+    selectLinea.addEventListener('change', function() {
+        cargarGops(this.value);
+    });
+
+    selectGop.addEventListener('change', function() {
+        hiddenGopRevision.value = this.value;
+    });
 </script>
 {% endblock %}
