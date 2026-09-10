@@ -6,6 +6,7 @@ urlpatterns = [
     path('crear/', views.crear_toolkit, name='crear_toolkit'),
     path('resumen/', views.resumen, name='resumen'),
     path('duenos/', views.duenos, name='duenos'),
+    path('duenos/<int:pk>/', views.detalle_dueno, name='detalle_dueno'),
     path('gops-no-cumplidos/', views.gops_no_cumplidos, name='gops_no_cumplidos'),
     path('gops-no-cumplidos/<int:toolkit_id>/', views.gops_no_cumplidos, name='gops_no_cumplidos_toolkit'),
     path('gops-no-cumplidos/<int:toolkit_id>/<int:revision_id>/', views.gops_no_cumplidos, name='gops_no_cumplidos_revision'),

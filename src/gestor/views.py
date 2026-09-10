@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
 from django.urls import reverse
 
-from .models import Toolkit, Gop, Revision, Gop_revision, Evidencia, PlanAccion
+from .models import Dueno, Toolkit, Gop, Revision, Gop_revision, Evidencia, PlanAccion
 from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm, PlanAccionGlobalForm
 from .utils import (
     resumen_toolkit,
@@ -20,12 +20,45 @@ from .utils import (
 )
 
 def duenos(request):
-    duenos = Duenos.objects.all()
+    duenos_list = Dueno.objects.all()
     datos = []
-    for d in duenos:
+    for d in duenos_list:
+        planes_abiertos = PlanAccion.objects.filter(
+            gop_revision__revision__toolkit__dueno=d,
+            completado=False,
+        ).count()
         datos.append({
             'dueno': d,
+            'toolkits_count': d.toolkits.count(),
+            'planes_abiertos': planes_abiertos,
         })
+    return render(request, 'duenos.html', {
+        'duenos': datos,
+        'nav_active': 'duenos',
+    })
+
+
+def detalle_dueno(request, pk):
+    dueno = get_object_or_404(Dueno, pk=pk)
+    toolkits = dueno.toolkits.all()
+    toolkits_data = []
+    for tk in toolkits:
+        porcentaje = tk.porcentaje_actual()
+        planes_abiertos = PlanAccion.objects.filter(
+            gop_revision__revision__toolkit=tk,
+            completado=False,
+        ).select_related('gop_revision__gop', 'gop_revision__revision')
+        toolkits_data.append({
+            'toolkit': tk,
+            'porcentaje': porcentaje,
+            'planes_abiertos': planes_abiertos,
+            'planes_count': planes_abiertos.count(),
+        })
+    return render(request, 'detalle_dueno.html', {
+        'dueno': dueno,
+        'toolkits_data': toolkits_data,
+        'nav_active': 'duenos',
+    })
 
 def listar_toolkits(request):
     toolkits = Toolkit.objects.all()
