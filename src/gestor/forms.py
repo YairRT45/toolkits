@@ -1,7 +1,18 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
-from .models import Toolkit, Gop, Revision, Gop_revision, PlanAccion
+from .models import Toolkit, Gop, Revision, Gop_revision, PlanAccion, Dueno
+
+class DuenoForm(forms.ModelForm):
+    class Meta:
+        model = Dueno
+        fields = ("nombre", 'apellido_p', 'apellido_m', 'foto')
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre'}),
+            'apellido_p': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apellido paterno'}),
+            'apellido_m': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apellido materno'}),
+            'foto': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+        }
 
 
 class ToolkitForm(forms.ModelForm):
@@ -101,3 +112,29 @@ class PlanAccionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if revision:
             self.fields['gop_revision'].queryset = revision.gops_no_cumplidos()
+
+
+class PlanAccionGlobalForm(forms.ModelForm):
+    gop = forms.ModelChoiceField(
+        queryset=Gop.objects.none(),
+        empty_label="Selecciona un GOP",
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='GOP incumplido',
+    )
+
+    class Meta:
+        model = PlanAccion
+        fields = ['gop', 'descripcion', 'responsable', 'fecha_limite']
+        widgets = {
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descripción del plan de acción'}),
+            'responsable': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Responsable'}),
+            'fecha_limite': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+    def __init__(self, *args, gops=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if gops is not None:
+            self.fields['gop'].queryset = gops
+            self.fields['gop'].label_from_instance = (
+                lambda gop: f"GOP {gop.numero}: {gop.pregunta}"
+            )

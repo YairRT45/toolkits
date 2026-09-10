@@ -47,6 +47,11 @@
         {% if revision.gops_no_cumplidos.count %}
         <a href="{% url 'crear_plan_accion' toolkit.pk revision.id %}" class="btn btn-primary">Crear plan de acción</a>
         {% endif %}
+        {% else %}
+        <a href="{% url 'desglose_revision_global' toolkit.pk fecha_global %}" class="btn btn-secondary">Desglose</a>
+        {% if total_incompletos %}
+        <a href="{% url 'crear_plan_accion_global' toolkit.pk fecha_global %}" class="btn btn-primary">Crear plan de acción</a>
+        {% endif %}
         {% endif %}
     </div>
 </div>

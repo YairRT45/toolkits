@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear plan de acción - {{ toolkit.nombre }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <span>/</span>
+    <a href="{% url 'detalle_toolkit' toolkit.pk %}">{{ toolkit.nombre }}</a>
+    <span>/</span>
+    <span>Plan de acción</span>
+</div>
+
+<div class="section-header">
+    <h1>Crear plan de acción</h1>
+</div>
+
+<div class="card" style="max-width:700px;">
+    <p style="color:#8c8d8f;margin-bottom:24px;">
+        Revisión global del {{ fecha_display|date:"d/m/Y" }} —
+        {{ gops_incumplidos_count }} GOP(s) con al menos una línea incumplida.
+        Al guardar se creará un plan de acción por cada línea incumplida del GOP seleccionado.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+        </div>
+        {% endfor %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'consultar_revision_global' toolkit.pk fecha_actual_iso %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const selectGop = document.getElementById('id_gop');
+    if (selectGop && selectGop.options[0] && selectGop.options[0].value === '') {
+        selectGop.options[0].disabled = true;
+    }
+</script>
+{% endblock %}

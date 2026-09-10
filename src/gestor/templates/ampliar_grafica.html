@@ -18,7 +18,7 @@
 </div>
 
 <div class="section-header">
-    <h1>{% if linea %}Cumplimiento histórico — Línea {{ linea }} ({{ toolkit.nombre }}){% else %}Cumplimiento histórico — {{ toolkit.nombre }}{% endif %}</h1>
+    <h1>{% if linea %}Cumplimiento histórico — Línea {{ linea }} ({{ toolkit.nombre }}){% elif es_global %}Cumplimiento histórico global — {{ toolkit.nombre }}{% else %}Cumplimiento histórico — {{ toolkit.nombre }}{% endif %}</h1>
     <a href="{% url 'desglose_revision' toolkit.pk %}" class="btn btn-secondary">Volver al desglose</a>
 </div>
 

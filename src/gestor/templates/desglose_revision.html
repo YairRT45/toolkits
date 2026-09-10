@@ -24,6 +24,12 @@
         {% endif %}
     </h1>
 <div class="toolbar">
+
+    {% if es_global %}
+    <a href="{% url 'consultar_revision_global' toolkit.pk fecha_global %}" class="btn btn-secondary">Volver a revisión</a>
+    {% else %}
+    <a href="{% url 'consultar_revision' toolkit.pk revision.id %}" class="btn btn-secondary">Volver a revisión</a>
+    {% endif %}
         {% if por_lineas %}
         <select id="sel-fecha" class="form-control" style="width:auto;"
                 data-url-global="{% url 'desglose_revision_global' toolkit.pk '99990101' %}"
@@ -96,34 +102,35 @@
 
 {% if es_global %}
 <div class="card" style="margin-top:20px;">
-    <h2>Resultado por GOP (líneas cumplidas)</h2>
+    <h2>Desglose por línea (GOP × línea)</h2>
+    <p style="color:#8c8d8f;font-size:13px;margin-bottom:12px;">Haz clic en el nombre de la línea para ver el detalle completo de esa revisión.</p>
     <div class="table-wrap">
         <table>
             <thead>
                 <tr>
-                    <th>No.</th>
-                    <th>Proceso</th>
-                    <th>Pregunta</th>
-                    <th>Cumplimiento</th>
-                    <th>Estado</th>
+                    <th>Línea</th>
+                    {% for gop in gops_todos %}
+                    <th>GOP {{ gop.numero }}</th>
+                    {% endfor %}
+                    <th>% Cumplimiento</th>
                 </tr>
             </thead>
             <tbody>
-                {% for item in gops_consolidados %}
+                {% for fila in desglose_lineas %}
                 <tr>
-                    <td>{{ item.gop.numero }}</td>
-                    <td>{{ item.gop.proceso }}</td>
-                    <td>{{ item.gop.pregunta }}</td>
-                    <td>{{ item.completadas }} de {{ item.total_lineas }} líneas ({{ item.porcentaje }}%)</td>
                     <td>
-                        {% if item.completadas == item.total_lineas %}
-                        <span class="badge badge-success">Completo</span>
-                        {% elif item.completadas == 0 %}
-                        <span class="badge badge-danger">Incompleto</span>
+                        <a href="{% url 'consultar_revision' toolkit.pk fila.revision.id %}" style="color:#d4a017;font-weight:500;">Línea {{ fila.revision.linea }}</a>
+                    </td>
+                    {% for celda in fila.celdas %}
+                    <td>
+                        {% if celda %}
+                        <span class="badge badge-success">✓</span>
                         {% else %}
-                        <span class="badge" style="background-color:rgba(212,160,23,0.2);color:#d4a017;">Parcial</span>
+                        <span class="badge badge-danger">✗</span>
                         {% endif %}
                     </td>
+                    {% endfor %}
+                    <td style="color:#f1f1f1;font-weight:600;">{{ fila.revision.porcentaje_cumplimiento }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -139,6 +146,8 @@
     </h2>
     <canvas id="chartCumplimiento"></canvas>
 </a>
+
+
 {% endblock %}
 
 {% block extra_js %}

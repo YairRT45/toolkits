@@ -11,7 +11,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.urls import reverse
 
 from .models import Toolkit, Gop, Revision, Gop_revision, Evidencia, PlanAccion
-from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm
+from .forms import ToolkitForm, GopFormSet, RevisionForm, PlanAccionForm, PlanAccionGlobalForm
 from .utils import (
     resumen_toolkit,
     calcular_cumplimiento_mensual, calcular_cumplimiento_mensual_ampliado,
@@ -19,6 +19,13 @@ from .utils import (
     gop_menor_cumplimiento, contar_gops_no_cumplidos, gops_no_cumplidos_por_revision,
 )
 
+def duenos(request):
+    duenos = Duenos.objects.all()
+    datos = []
+    for d in duenos:
+        datos.append({
+            'dueno': d,
+        })
 
 def listar_toolkits(request):
     toolkits = Toolkit.objects.all()
@@ -595,6 +602,15 @@ def desglose_revision_global(request, pk, fecha):
     gops_consolidados.sort(key=lambda x: x['porcentaje'])
     gop_menor_global = gops_consolidados[0] if gops_consolidados else None
 
+    gops_todos = list(toolkit.gops.order_by('numero'))
+    desglose_lineas = []
+    for rev in revisiones.order_by('linea'):
+        por_gop = {gr.gop_id: gr.completo for gr in rev.gop_revision_set.all()}
+        desglose_lineas.append({
+            'revision': rev,
+            'celdas': [por_gop.get(gop.id, None) for gop in gops_todos],
+        })
+
     planes_abiertos = PlanAccion.objects.filter(
         gop_revision__revision__in=revisiones,
         completado=False,
@@ -617,6 +633,8 @@ def desglose_revision_global(request, pk, fecha):
         'chart_data': json.dumps(chart_data),
         'gops_consolidados': gops_consolidados,
         'cantidad_lineas': cantidad_lineas,
+        'gops_todos': gops_todos,
+        'desglose_lineas': desglose_lineas,
         'nav_active': 'toolkits',
         **selectores,
     })
@@ -626,11 +644,19 @@ def ampliar_grafica(request, pk):
     toolkit = get_object_or_404(Toolkit, pk=pk)
     linea_q = request.GET.get('linea')
     linea = int(linea_q) if linea_q is not None and linea_q != '' else None
-    chart_data = calcular_cumplimiento_mensual_ampliado(toolkit, meses=12, linea=linea)
+    es_global = False
+    if linea is not None:
+        chart_data = calcular_cumplimiento_mensual_ampliado(toolkit, meses=12, linea=linea)
+    elif toolkit.por_lineas:
+        es_global = True
+        chart_data = calcular_cumplimiento_mensual_global(toolkit, meses=12)
+    else:
+        chart_data = calcular_cumplimiento_mensual_ampliado(toolkit, meses=12, linea=None)
     return render(request, 'ampliar_grafica.html', {
         'toolkit': toolkit,
         'chart_data': json.dumps(chart_data),
         'linea': linea,
+        'es_global': es_global,
         'nav_active': 'toolkits',
     })
 
@@ -692,18 +718,73 @@ def crear_plan_accion(request, pk, revision_id):
     })
 
 
-# def resumen(request):
-#     toolkits = Toolkit.objects.all()
-#     resumenes = [resumen_toolkit(tk) for tk in toolkits]
-#     charts_json = json.dumps([
-#         {'id': item['toolkit'].pk, 'data': item['chart_data']}
-#         for item in resumenes
-#     ])
-#     return render(request, 'resumen.html', {
-#         'resumenes': resumenes,
-#         'charts_json': charts_json,
-#         'nav_active': 'resumen',
-#     })
+@transaction.atomic
+def crear_plan_accion_global(request, pk, fecha):
+    toolkit = get_object_or_404(Toolkit, pk=pk)
+    try:
+        fecha_date = date.fromisoformat(fecha)
+    except ValueError:
+        messages.error(request, 'Fecha inválida.')
+        return redirect('consultar_revision_global', pk=pk, fecha=fecha)
+
+    revisiones = toolkit.revisiones.filter(fecha_revision=fecha_date)
+    if not revisiones.exists():
+        messages.warning(request, 'No hay revisiones registradas para esa fecha.')
+        return redirect('consultar_revision_global', pk=pk, fecha=fecha)
+
+    cantidad_lineas = revisiones.count()
+    gops_incumplidos = []
+    for gop in toolkit.gops.all():
+        completadas = Gop_revision.objects.filter(
+            revision__in=revisiones, gop=gop, completo=True
+        ).count()
+        if completadas < cantidad_lineas:
+            gops_incumplidos.append(gop)
+
+    if not gops_incumplidos:
+        messages.warning(request, 'No hay GOPs incumplidos en esta fecha.')
+        return redirect('consultar_revision_global', pk=pk, fecha=fecha)
+
+    gops_incumplidos_qs = Gop.objects.filter(pk__in=[g.pk for g in gops_incumplidos])
+
+    if request.method == 'POST':
+        form = PlanAccionGlobalForm(request.POST, gops=gops_incumplidos_qs)
+        if form.is_valid():
+            gop = form.cleaned_data['gop']
+            descripcion = form.cleaned_data['descripcion']
+            responsable = form.cleaned_data['responsable']
+            fecha_limite = form.cleaned_data['fecha_limite']
+            grs_incumplidos = Gop_revision.objects.filter(
+                revision__in=revisiones, gop=gop, completo=False
+            )
+            creados = 0
+            for gr in grs_incumplidos:
+                PlanAccion.objects.create(
+                    gop_revision=gr,
+                    descripcion=descripcion,
+                    responsable=responsable,
+                    fecha_limite=fecha_limite,
+                )
+                creados += 1
+            messages.success(
+                request,
+                f'Plan de acción creado correctamente para {creados} línea(s) del GOP {gop.numero}.',
+            )
+            return redirect('consultar_revision_global', pk=pk, fecha=fecha)
+    else:
+        form = PlanAccionGlobalForm(gops=gops_incumplidos_qs)
+
+    return render(request, 'crear_plan_accion_global.html', {
+        'form': form,
+        'toolkit': toolkit,
+        'revisiones': revisiones,
+        'fecha_display': fecha_date,
+        'fecha_actual_iso': fecha,
+        'gops_incumplidos_count': len(gops_incumplidos),
+        'nav_active': 'toolkits',
+    })
+
+
 
 def resumen(request):
     toolkits = Toolkit.objects.all()

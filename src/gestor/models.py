@@ -1,12 +1,28 @@
 from django.db import models
 from django.utils import timezone
 
+class Dueno(models.Model):
+    nombre = models.CharField(max_length=50)
+    apellido_p = models.CharField(max_length=50)
+    apellido_m = models.CharField(max_length=50)
+    foto = models.ImageField(upload_to='fotos/')
+
+    def __str__(self):
+        return f"{self.nombre} {self.apellido_p}"
+
 
 class Toolkit(models.Model):
     nombre = models.CharField(max_length=255, unique=True)
     por_lineas = models.BooleanField(default=False)
     meta = models.DecimalField(max_digits=5, decimal_places=1, default=100.00)
     fecha_ultima_modificacion = models.DateField(default=timezone.now)
+    dueno = models.ForeignKey(
+        Dueno,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='toolkits'
+    )
 
     def __str__(self):
         return self.nombre

@@ -13,7 +13,12 @@
     <h1>{{ toolkit.nombre }}</h1>
     <div class="toolbar">
         {% if toolkit.porcentaje_actual < 100 %}
-        <a href="{% url 'crear_plan_accion' toolkit.pk revision.id %}" class="btn btn-primary">Crear plan de acción</a>
+            {% if toolkit.por_lineas %}
+            <a href="{% url 'crear_plan_accion_global' toolkit.pk revision.fecha_revision %}" class="btn btn-primary">Crear plan de acción</a>
+            {% else %}
+            <a href="{% url 'crear_plan_accion' toolkit.pk revision.id %}" class="btn btn-primary">Crear plan de acción</a>
+            {% endif %}
+        
         {% endif %}
         <a href="{% url 'realizar_revision' toolkit.pk %}" class="btn btn-primary">Realizar revisión</a>
         <a href="{% url 'listar_revisiones' toolkit.pk %}" class="btn btn-secondary">Revisiones</a>
@@ -35,7 +40,7 @@
     </div>
     <div class="widget">
         <div class="widget-title">Meta de cumplimiento</div>
-        <div class="widget-value warning">{{ toolkit.meta }}%</div>
+        <div class="widget-value">{{ toolkit.meta }}%</div>
     </div>
     <div class="widget">
         <div class="widget-title">GOPs</div>
