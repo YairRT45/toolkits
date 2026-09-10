@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Nuevo Dueño{% endblock %}
+{% block title %}{% if dueno %}Editar: {{ dueno.nombre }} {{ dueno.apellido_p }}{% else %}Nuevo Dueño{% endif %}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
@@ -11,11 +11,11 @@
 <div class="breadcrumb">
     <a href="{% url 'duenos' %}">Dueños</a>
     <span>/</span>
-    <span>Nuevo Dueño</span>
+    <span>{% if dueno %}Editar: {{ dueno.nombre }} {{ dueno.apellido_p }}{% else %}Nuevo Dueño{% endif %}</span>
 </div>
 
 <div class="section-header">
-    <h1>Nuevo Dueño</h1>
+    <h1>{% if dueno %}Editar Dueño{% else %}Nuevo Dueño{% endif %}</h1>
 </div>
 
 <div class="card" style="max-width:760px;">
@@ -23,24 +23,34 @@
         {% csrf_token %}
         {% for field in form %}
         <div class="form-group">
+            {% if field.name == 'foto' %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            <div id="foto-upload" class="foto-upload" onclick="document.getElementById('id_foto').click()">
+                {% if dueno and dueno.foto %}
+                <img src="{{ dueno.foto.url }}" alt="Foto del dueño">
+                {% else %}
+                <div class="foto-upload-placeholder">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Seleccionar foto</span>
+                </div>
+                {% endif %}
+            </div>
+            <input type="file" name="foto" id="id_foto" accept="image/*" class="form-control">
+            {{ field.errors }}
+            {% else %}
             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
             {{ field.errors }}
-            {% if field.name == 'foto' %}
-            <div id="foto-preview" class="foto-preview" hidden>
-                <div class="foto-preview-circle">
-                    <img id="foto-preview-img" alt="Foto seleccionada">
-                </div>
-                <div class="foto-preview-meta">
-                    <div id="foto-filename" class="foto-filename"></div>
-                </div>
-            </div>
             {% endif %}
         </div>
         {% endfor %}
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Guardar</button>
+            {% if dueno %}
+            <a href="{% url 'detalle_dueno' dueno.pk %}" class="btn btn-secondary">Cancelar</a>
+            {% else %}
             <a href="{% url 'duenos' %}" class="btn btn-secondary">Cancelar</a>
+            {% endif %}
         </div>
     </form>
 </div>
@@ -69,64 +79,52 @@
 
 {% block extra_css %}
 input[type="file"].form-control {
-    padding: 6px;
-    cursor: pointer;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 }
 
-input[type="file"].form-control::file-selector-button {
-    background-color: #3a3b3d;
-    color: #ffffff;
-    border: none;
-    padding: 8px 18px;
-    border-radius: 6px;
-    margin-right: 12px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 14px;
-}
-
-input[type="file"].form-control::file-selector-button:hover {
-    background-color: #4a4b4d;
-}
-
-.foto-preview {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-top: 16px;
-}
-
-.foto-preview[hidden] {
-    display: none;
-}
-
-.foto-preview-circle {
-    width: 64px;
-    height: 64px;
+.foto-upload {
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     overflow: hidden;
-    border: 1px solid #d4a017;
-    background: #161718;
-    flex-shrink: 0;
+    border: 2px dashed #7b7c80;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2a2b2d;
+    transition: border-color 0.2s ease;
 }
 
-.foto-preview-circle img {
+.foto-upload:hover {
+    border-color: #d4a017;
+}
+
+.foto-upload img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
 
-.foto-preview-meta {
+.foto-upload-placeholder {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
+    align-items: center;
+    gap: 6px;
+    color: #7b7c80;
+    font-size: 12px;
 }
 
-.foto-filename {
-    font-size: 13px;
-    color: #8c8d8f;
+.foto-upload-placeholder i {
+    font-size: 24px;
 }
 
 .form-hint {
@@ -289,9 +287,6 @@ input[type="file"].form-control::file-selector-button:hover {
     const btnAplicar = document.getElementById('btn-aplicar');
     const btnCancelar = document.getElementById('btn-cancelar');
     const btnCerrar = document.getElementById('modal-close');
-    const fotoPreview = document.getElementById('foto-preview');
-    const fotoPreviewImg = document.getElementById('foto-preview-img');
-    const fotoFilename = document.getElementById('foto-filename');
 
     let cropper = null;
     let recorteAplicado = false;
@@ -369,6 +364,8 @@ input[type="file"].form-control::file-selector-button:hover {
             fileInput.value = '';
             return;
         }
+        const fotoUpload = document.getElementById('foto-upload');
+        if (fotoUpload) fotoUpload.hidden = true;
         const reader = new FileReader();
         reader.onload = function (e) {
             cropImage.onload = abrirModal;
@@ -390,11 +387,11 @@ input[type="file"].form-control::file-selector-button:hover {
     btnAplicar.addEventListener('click', function () {
         if (!cropper) return;
         const canvas = cropper.getCroppedCanvas({ width: 512, height: 512 });
-        const prev = document.createElement('canvas');
-        prev.width = 160;
-        prev.height = 160;
-        prev.getContext('2d').drawImage(canvas, 0, 0, 160, 160);
-        fotoPreviewImg.src = prev.toDataURL('image/jpeg', 0.9);
+        const fotoUpload = document.getElementById('foto-upload');
+        if (fotoUpload) {
+            fotoUpload.innerHTML = '<img src="' + canvas.toDataURL('image/jpeg', 0.9) + '" alt="Foto seleccionada">';
+            fotoUpload.hidden = false;
+        }
 
         const nombre = fileInput.files && fileInput.files[0] ? fileInput.files[0].name : 'foto.jpg';
         archivoDesdeCanvas(canvas, nombre).then(function (archivo) {
@@ -402,11 +399,9 @@ input[type="file"].form-control::file-selector-button:hover {
             const dt = new DataTransfer();
             dt.items.add(archivo);
             fileInput.files = dt.files;
-            fotoFilename.textContent = archivo.name;
         });
 
         recorteAplicado = true;
-        fotoPreview.hidden = false;
         cerrarModal();
     });
 
@@ -417,7 +412,8 @@ input[type="file"].form-control::file-selector-button:hover {
             fileInput.files = dt.files;
         } else {
             fileInput.value = '';
-            fotoPreview.hidden = true;
+            const fotoUpload = document.getElementById('foto-upload');
+            if (fotoUpload) fotoUpload.hidden = false;
         }
         cerrarModal();
     }

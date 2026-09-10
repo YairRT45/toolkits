@@ -25,6 +25,10 @@
             <span>{{ toolkits_data|length }} toolkit{{ toolkits_data|length|pluralize }}</span>
         </div>
     </div>
+    <div class="toolbar">
+        <a href="{% url 'editar_dueno' dueno.pk %}" class="btn btn-secondary">Editar</a>
+        <a href="{% url 'eliminar_dueno' dueno.pk %}" class="btn btn-danger">Eliminar</a>
+    </div>
 </div>
 
 {% if toolkits_data %}

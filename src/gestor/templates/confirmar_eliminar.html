@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="breadcrumb">
-    <a href="{% url 'listar_toolkits' %}">Toolkits</a>
+    <a href="{% url cancel_url %}">{{ tipo }}s</a>
     <span>/</span>
     <span>Eliminar</span>
 </div>
@@ -18,7 +18,7 @@
     <form method="post" class="form-actions" style="justify-content:center;">
         {% csrf_token %}
         <button type="submit" class="btn btn-danger">Confirmar eliminación</button>
-        <a href="{% url 'listar_toolkits' %}" class="btn btn-secondary">Cancelar</a>
+        <a href="{% url cancel_url %}" class="btn btn-secondary">Cancelar</a>
     </form>
 </div>
 {% endblock %}

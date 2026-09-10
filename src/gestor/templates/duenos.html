@@ -14,29 +14,40 @@
 {% if duenos %}
 <div class="duenos-grid">
     {% for item in duenos %}
-    <a href="{% url 'detalle_dueno' item.dueno.pk %}" class="dueno-card">
-        <div class="dueno-card-photo">
-            {% if item.dueno.foto %}
-            <img src="{{ item.dueno.foto.url }}" alt="{{ item.dueno.nombre }}">
-            {% else %}
-            <div class="dueno-card-photo-placeholder">
-                <i class="fa-solid fa-user"></i>
-            </div>
-            {% endif %}
-        </div>
-        <div class="dueno-card-info">
-            <div class="dueno-card-name">{{ item.dueno.nombre }} {{ item.dueno.apellido_p }} {{ item.dueno.apellido_m }}</div>
-            <div class="dueno-card-meta">
-                <span><i class="fa-solid fa-folder"></i> {{ item.toolkits_count }} toolkit{{ item.toolkits_count|pluralize }}</span>
-                {% if item.planes_abiertos > 0 %}
-                <span class="planes-warning"><i class="fa-solid fa-clipboard-list"></i> {{ item.planes_abiertos }} plan{{ item.planes_abiertos|pluralize }} abierto{{ item.planes_abiertos|pluralize }}</span>
+    <div class="dueno-card">
+        <a href="{% url 'detalle_dueno' item.dueno.pk %}" class="dueno-card-link">
+            <div class="dueno-card-photo">
+                {% if item.dueno.foto %}
+                <img src="{{ item.dueno.foto.url }}" alt="{{ item.dueno.nombre }}">
+                {% else %}
+                <div class="dueno-card-photo-placeholder">
+                    <i class="fa-solid fa-user"></i>
+                </div>
                 {% endif %}
             </div>
+            <div class="dueno-card-info">
+                <div class="dueno-card-name">{{ item.dueno.nombre }} {{ item.dueno.apellido_p }} {{ item.dueno.apellido_m }}</div>
+                <div class="dueno-card-meta">
+                    <span><i class="fa-solid fa-folder"></i> {{ item.toolkits_count }} toolkit{{ item.toolkits_count|pluralize }}</span>
+                    {% if item.planes_abiertos > 0 %}
+                    <span class="planes-warning"><i class="fa-solid fa-clipboard-list"></i> {{ item.planes_abiertos }} plan{{ item.planes_abiertos|pluralize }} abierto{{ item.planes_abiertos|pluralize }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="dueno-card-arrow">
+                <i class="fa-solid fa-chevron-right"></i>
+            </div>
+        </a>
+        <div class="card-actions">
+            <button class="dots-btn" onclick="toggleMenu(this)" title="Opciones">
+                <i class="fa-solid fa-ellipsis"></i>
+            </button>
+            <div class="context-menu">
+                <a href="{% url 'editar_dueno' item.dueno.pk %}" class="menu-item">Editar</a>
+                <a href="{% url 'eliminar_dueno' item.dueno.pk %}" class="menu-item">Eliminar</a>
+            </div>
         </div>
-        <div class="dueno-card-arrow">
-            <i class="fa-solid fa-chevron-right"></i>
-        </div>
-    </a>
+    </div>
     {% endfor %}
 </div>
 {% else %}
@@ -62,7 +73,6 @@
     border: 1px solid transparent;
     border-radius: 12px;
     padding: 16px 24px;
-    text-decoration: none;
     color: inherit;
     transition: border-color 0.2s ease, transform 0.15s ease;
 }
@@ -70,6 +80,20 @@
 .dueno-card:hover {
     border-color: #d4a017;
     transform: translateY(-2px);
+}
+
+.dueno-card:has(.context-menu.show) {
+    z-index: 20;
+}
+
+.dueno-card-link {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
 }
 
 .dueno-card-photo {

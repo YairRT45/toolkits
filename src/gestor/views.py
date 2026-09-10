@@ -53,6 +53,38 @@ def crear_dueno(request):
     })
 
 
+def editar_dueno(request, pk):
+    dueno = get_object_or_404(Dueno, pk=pk)
+    if request.method == 'POST':
+        form = DuenoForm(request.POST, request.FILES, instance=dueno)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Dueño actualizado correctamente.')
+            return redirect('detalle_dueno', pk=pk)
+    else:
+        form = DuenoForm(instance=dueno)
+    return render(request, 'crear_dueno.html', {
+        'form': form,
+        'dueno': dueno,
+        'nav_active': 'duenos',
+    })
+
+
+def eliminar_dueno(request, pk):
+    dueno = get_object_or_404(Dueno, pk=pk)
+    if request.method == 'POST':
+        nombre = f'{dueno.nombre} {dueno.apellido_p}'
+        dueno.delete()
+        messages.success(request, f'Dueño "{nombre}" eliminado.')
+        return redirect('duenos')
+    return render(request, 'confirmar_eliminar.html', {
+        'objeto': dueno,
+        'tipo': 'Dueño',
+        'cancel_url': 'duenos',
+        'nav_active': 'duenos',
+    })
+
+
 def detalle_dueno(request, pk):
     dueno = get_object_or_404(Dueno, pk=pk)
     toolkits = dueno.toolkits.all()
@@ -195,6 +227,7 @@ def eliminar_toolkit(request, pk):
     return render(request, 'confirmar_eliminar.html', {
         'objeto': toolkit,
         'tipo': 'Toolkit',
+        'cancel_url': 'listar_toolkits',
         'nav_active': 'toolkits',
     })
 
