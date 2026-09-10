@@ -20,9 +20,17 @@ class DuenoForm(forms.ModelForm):
 
 
 class ToolkitForm(forms.ModelForm):
+    dueno = forms.ModelChoiceField(
+        queryset=Dueno.objects.all(),
+        required=True,
+        empty_label="Selecciona un dueño",
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='Dueño',
+    )
+
     class Meta:
         model = Toolkit
-        fields = ['nombre', 'por_lineas', 'meta']
+        fields = ['nombre', 'dueno', 'por_lineas', 'meta']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del Toolkit'}),
             'por_lineas': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -30,6 +38,7 @@ class ToolkitForm(forms.ModelForm):
         }
         labels = {
             'nombre': 'Nombre',
+            'dueno': 'Dueño',
             'por_lineas': 'Revisión por líneas (14 líneas)',
             'meta': 'Meta de cumplimiento (%)',
         }

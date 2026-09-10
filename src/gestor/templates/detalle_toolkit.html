@@ -10,7 +10,23 @@
 </div>
 
 <div class="section-header">
-    <h1>{{ toolkit.nombre }}</h1>
+    <div>
+        <h1 style="margin:0;">{{ toolkit.nombre }}</h1>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+            <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;background-color:#2a2b2d;display:flex;align-items:center;justify-content:center;">
+                {% if toolkit.dueno.foto %}
+                <img src="{{ toolkit.dueno.foto.url }}" alt="{{ toolkit.dueno.nombre }}" width="32" height="32" style="width:32px;height:32px;object-fit:cover;border-radius:50%;">
+                {% else %}
+                <i class="fa-solid fa-user" style="color:#7b7c80;font-size:14px;"></i>
+                {% endif %}
+            </div>
+            {% if toolkit.dueno %}
+            <a href="{% url 'detalle_dueno' toolkit.dueno.pk %}" class="dueno-nombre">{{ toolkit.dueno.nombre }} {{ toolkit.dueno.apellido_p }}</a>
+            {% else %}
+            <span class="dueno-nombre">Sin dueño</span>
+            {% endif %}
+        </div>
+    </div>
     <div class="toolbar">
         {% if toolkit.porcentaje_actual < 100 %}
             {% if toolkit.por_lineas %}
@@ -81,4 +97,17 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_css %}
+.dueno-nombre {
+    font-size: 15px;
+    color: #d4a017;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+a.dueno-nombre:hover {
+    text-decoration: underline;
+}
 {% endblock %}
