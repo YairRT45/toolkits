@@ -271,12 +271,13 @@
         }
 
         .table-wrap {
-            overflow-x: auto;
+            overflow: visible;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
 
         th, td {
@@ -603,6 +604,71 @@
         input[type="date"]::-webkit-calendar-picker-indicator {
             cursor: pointer;
             filter: invert(1);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .toggle-switch input {
+            display: none;
+        }
+
+        .toggle-slider {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background-color: #3a3b3d;
+            border-radius: 12px;
+            transition: background-color 0.25s ease;
+        }
+
+        .toggle-slider::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background-color: #8c8d8f;
+            border-radius: 50%;
+            transition: transform 0.25s ease, background-color 0.25s ease;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: rgba(0, 176, 80, 0.3);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::after {
+            transform: translateX(20px);
+            background-color: #00b050;
+        }
+
+        .toggle-switch input:not(:checked) + .toggle-slider {
+            background-color: rgba(212, 160, 23, 0.2);
+        }
+
+        .toggle-switch input:not(:checked) + .toggle-slider::after {
+            background-color: #d4a017;
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            color: #8c8d8f;
+            user-select: none;
+        }
+
+        .toggle-switch input:checked ~ .toggle-label {
+            color: #00b050;
+        }
+
+        .toggle-switch input:not(:checked) ~ .toggle-label {
+            color: #d4a017;
         }
 
         {% block extra_css %}{% endblock %}

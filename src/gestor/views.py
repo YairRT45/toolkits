@@ -779,7 +779,6 @@ def cerrar_plan_accion(request, pk, plan_id):
     plan = get_object_or_404(PlanAccion, pk=plan_id, gop_revision__revision__toolkit__pk=pk)
     plan.completado = True
     plan.save()
-    messages.success(request, 'Plan de acción cerrado correctamente.')
     return redirect('listar_planes_accion', pk=pk)
 
 
@@ -787,7 +786,6 @@ def reabrir_plan_accion(request, pk, plan_id):
     plan = get_object_or_404(PlanAccion, pk=plan_id, gop_revision__revision__toolkit__pk=pk)
     plan.completado = False
     plan.save()
-    messages.success(request, 'Plan de acción reabierto correctamente.')
     return redirect('listar_planes_accion', pk=pk)
 
 

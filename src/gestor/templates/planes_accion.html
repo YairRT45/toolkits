@@ -24,6 +24,15 @@
 <div class="card">
     <div class="table-wrap">
         <table>
+            <colgroup>
+                <col style="width: 12%">
+                <col style="width: 8%">
+                <col style="width: 25%">
+                <col style="width: 17%">
+                <col style="width: 12%">
+                <col style="width: 11%">
+                <col style="width: 15%">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Toolkit</th>
@@ -52,12 +61,16 @@
                     </td>
                     <td>
                         {% if plan.completado %}
-                        <a href="{% url 'reabrir_plan_accion' plan.gop_revision.revision.toolkit.pk plan.pk %}" class="btn btn-sm btn-warning" title="Reabrir">
-                            <i class="fa-solid fa-rotate-left"></i> Reabrir
+                        <a href="{% url 'reabrir_plan_accion' plan.gop_revision.revision.toolkit.pk plan.pk %}" class="toggle-switch" title="Reabrir plan">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Completado</span>
                         </a>
                         {% else %}
-                        <a href="{% url 'cerrar_plan_accion' plan.gop_revision.revision.toolkit.pk plan.pk %}" class="btn btn-sm btn-success" title="Cerrar">
-                            <i class="fa-solid fa-check"></i> Cerrar
+                        <a href="{% url 'cerrar_plan_accion' plan.gop_revision.revision.toolkit.pk plan.pk %}" class="toggle-switch" title="Cerrar plan">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Abierto</span>
                         </a>
                         {% endif %}
                     </td>
