@@ -25,16 +25,22 @@
     <div class="table-wrap">
         <table>
             <colgroup>
+                {% if toolkit.por_lineas %}
+                <col style="width: 10%">
+                {% endif %}
                 <col style="width: 12%">
-                <col style="width: 8%">
+                <col style="width: 10%">
                 <col style="width: 25%">
                 <col style="width: 17%">
                 <col style="width: 12%">
-                <col style="width: 11%">
-                <col style="width: 15%">
+                <col style="width: 10%">
+                <col style="width: 14%">
             </colgroup>
             <thead>
                 <tr>
+                    {% if toolkit.por_lineas %}
+                    <th>Línea</th>
+                    {% endif %}
                     <th>Toolkit</th>
                     <th>GOP</th>
                     <th>Descripción</th>
@@ -47,6 +53,15 @@
             <tbody>
                 {% for plan in planes %}
                 <tr>
+                    {% if toolkit.por_lineas %}
+                    <td>
+                        {% if plan.linea %}
+                        <span class="badge badge-warning">Línea {{ plan.linea }}</span>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    {% endif %}
                     <td>{{ plan.gop_revision.revision.toolkit.nombre }}</td>
                     <td>GOP {{ plan.gop_revision.gop.numero }}</td>
                     <td>{{ plan.descripcion|truncatechars:60 }}</td>

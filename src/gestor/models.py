@@ -120,6 +120,9 @@ class PlanAccion(models.Model):
     fecha_limite = models.DateField()
     completado = models.BooleanField(default=False)
     fecha_creacion = models.DateField(auto_now_add=True)
+    linea = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self):
+        if self.linea:
+            return f"Plan: {self.gop_revision.gop.pregunta[:50]} (Línea {self.linea})"
         return f"Plan: {self.gop_revision.gop.pregunta[:50]}"

@@ -21,27 +21,27 @@
         Selecciona una línea y un GOP incumplido para crear un plan de acción específico.
     </p>
 
-    <div class="form-row" style="display:flex;gap:16px;margin-bottom:24px;">
-        <div class="form-group" style="flex:1;">
-            <label for="id_linea">Línea</label>
-            <select id="id_linea" name="linea" class="form-control" required>
-                <option value="">Selecciona una línea</option>
-                {% for linea in lineas_disponibles %}
-                <option value="{{ linea }}">Línea {{ linea }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group" style="flex:1;">
-            <label for="id_gop_select">GOP incumplido</label>
-            <select id="id_gop_select" class="form-control" required>
-                <option value="">Selecciona una línea primero</option>
-            </select>
-            <input type="hidden" id="id_gop_revision" name="gop_revision" value="">
-        </div>
-    </div>
-
     <form method="post">
         {% csrf_token %}
+        <div class="form-row" style="display:flex;gap:16px;margin-bottom:24px;">
+            <div class="form-group" style="flex:1;">
+                <label for="id_linea">Línea</label>
+                <select id="id_linea" name="linea" class="form-control" required>
+                    <option value="">Selecciona una línea</option>
+                    {% for linea in lineas_disponibles %}
+                    <option value="{{ linea }}">Línea {{ linea }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label for="id_gop_select">GOP incumplido</label>
+                <select id="id_gop_select" class="form-control" required>
+                    <option value="">Selecciona una línea primero</option>
+                </select>
+                <input type="hidden" id="id_gop_revision" name="gop_revision" value="">
+            </div>
+        </div>
+
         {% for field in form %}
         <div class="form-group">
             <label for="{{ field.id_for_label }}">{{ field.label }}</label>

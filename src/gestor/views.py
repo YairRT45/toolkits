@@ -889,6 +889,7 @@ def crear_plan_accion_global(request, pk, fecha):
                 descripcion=descripcion,
                 responsable=responsable,
                 fecha_limite=fecha_limite,
+                linea=linea,
             )
 
             messages.success(
