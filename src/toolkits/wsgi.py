@@ -13,4 +13,7 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'toolkits.settings')
 
-application = get_wsgi_application()
+# application = get_wsgi_application()
+
+from toolkits.whitenoise_conf import MediaWhiteNoise
+application = MediaWhiteNoise(get_wsgi_application())
